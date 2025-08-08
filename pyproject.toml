@@ -9,7 +9,11 @@ description = "Python client for the Alma API"
 readme = "README.md"
 requires-python = ">=3.9"
 classifiers = ["Programming Language :: Python :: 3"]
-dependencies = ["xmltodict", "requests", "pymarc"]
+dependencies = [
+    "pymarc==5.3.1:,
+    "requests==2.32.4:,
+    "xmltodict==0.14.2:,
+]
 
 [project.urls]
 Homepage = "https://github.com/UCLALibrary/alma-api-client"
