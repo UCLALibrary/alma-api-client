@@ -15,8 +15,8 @@ class AlmaAnalyticsClient:
 
         self.alma_client = AlmaAPIClient(self.API_KEY)
         self.column_names: bool = True
-        self.filter: str = None
-        self.report_path: str = None
+        self.filter: str = ""
+        self.report_path: str = ""
         self.rows_per_fetch: int = 1000
 
     def set_filter_xml(self, filter_xml: str) -> None:
@@ -76,7 +76,7 @@ class AlmaAnalyticsClient:
 
     def get_report(self) -> list[dict]:
         """Run Analytics report and return data."""
-        if self.report_path is None:
+        if not self.report_path:
             raise ValueError("Path to report must be set")
         # Used with every API call
         constant_params = {
@@ -175,7 +175,7 @@ class AlmaAnalyticsClient:
         """Convert single-row bare dict to a list containing that dict, if needed."""
         # This is a list of dictionaries if > 1 row...
         # but just a dictionary if only 1 row.
-        rows = report_data.get("rows")
+        rows: list | dict = report_data.get("rows", [])
         if isinstance(rows, dict):
             rows = [rows]
         return rows

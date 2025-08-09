@@ -64,6 +64,8 @@ class AlmaAPIClient:
     def _call_put_api(
         self, api: str, data: str, parameters: dict | None = None, format: str = "json"
     ) -> dict:
+        # TODO: Review types for data and call_put_api. data is dict for user and fund,
+        # but bytes for bib and holdings.
         if parameters is None:
             parameters = {}
         headers = self._get_headers(format)
@@ -134,6 +136,8 @@ class AlmaAPIClient:
         # Tells Alma to queue / run a job; does *not* wait for completion.
         # Caller must provide job_id outside of parameters.
         # Running a scheduled job requires empty data {}; not sure about other jobs
+        if data is None:
+            data = {}
         if parameters is None:
             parameters = {}
         api = f"/almaws/v1/conf/jobs/{job_id}"
@@ -146,6 +150,9 @@ class AlmaAPIClient:
         # This method allows the caller to wait until the given instance of
         # the job has completed.
         api = f"/almaws/v1/conf/jobs/{job_id}/instances/{instance_id}"
+
+        # Initialize instance, to keep type-checker happy.
+        instance = {}
         # progress value (0-100) can't be used as it remains 0 if FAILED.
         # Use status instead; values from
         # https://developers.exlibrisgroup.com/alma/apis/docs/xsd/rest_job_instance.xsd/
@@ -209,6 +216,7 @@ class AlmaAPIClient:
         if parameters is None:
             parameters = {}
         api = f"/almaws/v1/bibs/{mms_id}"
+        # TODO: Review types for data and call_put_api
         return self._call_put_api(api, data, parameters, format="xml")
 
     def get_holding(
@@ -230,7 +238,7 @@ class AlmaAPIClient:
         api = f"/almaws/v1/bibs/{mms_id}/holdings/{holding_id}"
         return self._call_put_api(api, data, format="xml")
 
-    def get_set_members(self, set_id: str, parameters: dict | None = None) -> None:
+    def get_set_members(self, set_id: str, parameters: dict | None = None) -> dict:
         if parameters is None:
             parameters = {}
         api = f"/almaws/v1/conf/sets/{set_id}/members"
