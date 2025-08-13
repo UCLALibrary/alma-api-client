@@ -14,6 +14,13 @@ class AlmaAPIClient:
         self.BASE_URL = "https://api-na.hosted.exlibrisgroup.com"
 
     def _get_headers(self, format: str = "json") -> dict:
+        """Generate the HTTP headers needed for all API requests, to be sure responses
+        are in the requested format.
+
+        :param format: The desired format, expected to be json or xml.
+        :return: The relevant HTTP headers.
+        """
+        # TODO: Enforce valid formats.
         return {
             "Authorization": f"apikey {self.API_KEY}",
             "Accept": f"application/{format}",
@@ -25,7 +32,12 @@ class AlmaAPIClient:
 
         If format is not json, the (presumably) XML content is in api_data["content"],
         as a byte array.
+
+        :param response: An HTTP response returned by the API.
+        :param format: The desired format, expected to be json or xml.
+        :return api_data: Response content and selected headers.
         """
+        # TODO: Enforce valid formats.
         try:
             if format == "json":
                 api_data: dict = response.json()
@@ -45,6 +57,13 @@ class AlmaAPIClient:
     def _call_get_api(
         self, api: str, parameters: dict | None = None, format: str = "json"
     ) -> dict:
+        """Send a GET request to the API.
+
+        :param api: The API to call, without the base URL.
+        :param parameters: The optional request parameters.
+        :param format: The desired format, expected to be json or xml.
+        :return api_data: Response content and selected headers.
+        """
         if parameters is None:
             parameters = {}
         get_url = self.BASE_URL + api
@@ -56,11 +75,20 @@ class AlmaAPIClient:
     def _call_post_api(
         self, api: str, data: Data, parameters: dict | None = None, format: str = "json"
     ) -> dict:
+        """Send a POST request to the API.
+
+        :param api: The API to call, without the base URL.
+        :param data: The data to send in the body of the request.
+        :param parameters: The optional request parameters.
+        :param format: The desired format, expected to be json or xml.
+        :return api_data: Response content and selected headers.
+        """
         if parameters is None:
             parameters = {}
         post_url = self.BASE_URL + api
         headers = self._get_headers(format)
         # TODO: Non-JSON POST?
+        # TODO: Enforce valid formats.
         response = requests.post(
             post_url, headers=headers, json=data, params=parameters
         )
@@ -70,11 +98,20 @@ class AlmaAPIClient:
     def _call_put_api(
         self, api: str, data: Data, parameters: dict | None = None, format: str = "json"
     ) -> dict:
+        """Send a PUT request to the API.
+
+        :param api: The API to call, without the base URL.
+        :param data: The data to send in the body of the request.
+        :param parameters: The optional request parameters.
+        :param format: The desired format, expected to be json or xml.
+        :return api_data: Response content and selected headers.
+        """
         if parameters is None:
             parameters = {}
         headers = self._get_headers(format)
         put_url = self.BASE_URL + api
         # Handle both XML (required by update_bib) and default JSON
+        # TODO: Enforce valid formats.
         if format == "xml":
             response = requests.put(
                 put_url, headers=headers, data=data, params=parameters
@@ -90,6 +127,13 @@ class AlmaAPIClient:
     def _call_delete_api(
         self, api: str, parameters: dict | None = None, format: str = "json"
     ) -> dict:
+        """Send a DELETE request to the API.
+
+        :param api: The API to call, without the base URL.
+        :param parameters: The optional request parameters.
+        :param format: The desired format, expected to be json or xml.
+        :return api_data: Response content and selected headers.
+        """
         if parameters is None:
             parameters = {}
         delete_url = self.BASE_URL + api
