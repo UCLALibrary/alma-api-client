@@ -1,7 +1,7 @@
 FROM python:3.13-slim-bookworm
 
 # Update base image
-RUN apt-get update 
+RUN apt-get update
 
 # Set correct timezone
 RUN ln -sf /usr/share/zoneinfo/America/Los_Angeles /etc/localtime

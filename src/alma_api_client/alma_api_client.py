@@ -1,5 +1,11 @@
 import requests
 from time import sleep
+from typing import Union
+
+# For requests data parameter, which is very flexible;
+# (optional) Dictionary, list of tuples, bytes, or file-like object to send...
+# this is better than Any.
+type Data = Union[bytes, dict, list[tuple]]
 
 
 class AlmaAPIClient:
@@ -48,7 +54,7 @@ class AlmaAPIClient:
         return api_data
 
     def _call_post_api(
-        self, api: str, data: dict, parameters: dict | None = None, format: str = "json"
+        self, api: str, data: Data, parameters: dict | None = None, format: str = "json"
     ) -> dict:
         if parameters is None:
             parameters = {}
@@ -62,10 +68,8 @@ class AlmaAPIClient:
         return api_data
 
     def _call_put_api(
-        self, api: str, data: str, parameters: dict | None = None, format: str = "json"
+        self, api: str, data: Data, parameters: dict | None = None, format: str = "json"
     ) -> dict:
-        # TODO: Review types for data and call_put_api. data is dict for user and fund,
-        # but bytes for bib and holdings.
         if parameters is None:
             parameters = {}
         headers = self._get_headers(format)
@@ -212,11 +216,10 @@ class AlmaAPIClient:
         api = f"/almaws/v1/bibs/{mms_id}"
         return self._call_get_api(api, parameters, format="xml")
 
-    def update_bib(self, mms_id: str, data: str, parameters: dict | None = None) -> dict:
+    def update_bib(self, mms_id: str, data: bytes, parameters: dict | None = None) -> dict:
         if parameters is None:
             parameters = {}
         api = f"/almaws/v1/bibs/{mms_id}"
-        # TODO: Review types for data and call_put_api
         return self._call_put_api(api, data, parameters, format="xml")
 
     def get_holding(
@@ -231,7 +234,7 @@ class AlmaAPIClient:
         return self._call_get_api(api, parameters, format="xml")
 
     def update_holding(
-        self, mms_id: str, holding_id: str, data: str, parameters: dict | None = None
+        self, mms_id: str, holding_id: str, data: bytes, parameters: dict | None = None
     ) -> dict:
         if parameters is None:
             parameters = {}
