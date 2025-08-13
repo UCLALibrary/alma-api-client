@@ -15,15 +15,18 @@ class AlmaAnalyticsClient:
 
         self.alma_client = AlmaAPIClient(self.API_KEY)
         self.column_names: bool = True
-        self.filter: str = None
-        self.report_path: str = None
+        self.filter: str = ""
+        self.report_path: str = ""
         self.rows_per_fetch: int = 1000
 
     def set_filter_xml(self, filter_xml: str) -> None:
         """Set filter which will be applied to Analytics report.
+
         Caller is responsible for building full XML required.
         Analytics report must already have an "Is prompted" filter
         on the given table and field.
+
+        :param filter_xml: The XML for a valid Analytics filter.
         """
         self.filter = self._clean_filter_xml(filter_xml)
 
@@ -32,6 +35,10 @@ class AlmaAnalyticsClient:
 
         Analytics report must already have an "Is prompted" filter
         on the given table and field.
+
+        :param table_name: Name of the table to filter.
+        :param field_name: Name of the field to filter on.
+        :param value: Value to filter on.
         """
         filter_xml = f"""
         <sawx:expr xsi:type="sawx:comparison" op="equal"
@@ -46,9 +53,12 @@ class AlmaAnalyticsClient:
     def set_filter_like(self, table_name: str, field_name: str, value: str) -> None:
         """Set filter for single-field 'LIKE' comparison.
 
-        value parameter must have SQL wildcard(s).
         Analytics report must already have an "Is prompted" filter
         on the given table and field.
+
+        :param table_name: Name of the table to filter.
+        :param field_name: Name of the field to filter on.
+        :param value: Value to filter on. This value must contain SQL wildcard(s).
         """
         filter_xml = f"""
         <sawx:expr xsi:type="sawx:list" op="like"
@@ -62,21 +72,26 @@ class AlmaAnalyticsClient:
 
     def set_report_path(self, report_path: str) -> None:
         """Set full path to report in Analytics.
-        Path must not be URL-escaped.
+
+        :param report_path: The full path of the report in Analytics. The path
+        must not be URL-escaped.
         """
         self.report_path = report_path
 
     def set_rows_per_fetch(self, rows_per_fetch: int) -> None:
         """Set number of rows to fetch per API call.
-        Valid values: 25 to 1000, best as multiple of 25
 
-        The only real reason to call this: testing iteration code.
+        Note: The only real reason to call this: testing iteration code.
+
+        :param rows_per_fetch: The number of rows to fetch.
+        Must be between 25 and 1000 inclusive; best as multiple of 25
         """
         self.rows_per_fetch = rows_per_fetch
 
     def get_report(self) -> list[dict]:
         """Run Analytics report and return data."""
-        if self.report_path is None:
+
+        if not self.report_path:
             raise ValueError("Path to report must be set")
         # Used with every API call
         constant_params = {
@@ -114,7 +129,11 @@ class AlmaAnalyticsClient:
         return final_data
 
     def _get_report_data(self, xml_report: dict) -> dict:
-        """Return usable data from XML the Analytics API uses."""
+        """Extract usable data from XML the Analytics API returns.
+
+        :param xml_report: The full report as returned by the API.
+        """
+
         # Report available only in XML
         # Entire XML report is a "list" with one value, in 'anies' element of json response
         xml: str = xml_report["anies"][0]
@@ -138,7 +157,11 @@ class AlmaAnalyticsClient:
         return report_data
 
     def _get_real_column_names(self, report_dict: dict) -> dict:
-        """Get real column names from report metadata."""
+        """Get real column names from report metadata.
+
+        :param report_dict: Report data and metadata, created as part of _get_report_data().
+        """
+
         column_names = {}
         try:
             column_info = report_dict["ResultXml"]["rowset"]["xsd:schema"][
@@ -155,8 +178,13 @@ class AlmaAnalyticsClient:
         return column_names
 
     def _apply_column_names(self, column_names: dict, data_rows: list) -> list:
-        """Map real column names onto data rows, replacing generic ColumnN names.
-        Remove meaningless Column0.
+        """Map real column names onto data rows, replacing generic ColumnN names and.
+        removing meaningless Column0.
+
+        :param column_names: Mapping between generic column names used by Analytics and
+        real column names extracted from metadata.
+        :param data_rows: All of the rows of data, which column names will be applied to.
+        :return data: The updated rows of data, with column names applied.
         """
         data = []
         for row in data_rows:
@@ -168,14 +196,22 @@ class AlmaAnalyticsClient:
         return data
 
     def _clean_filter_xml(self, filter_xml: str) -> str:
-        """Strip out formatting characters which make API unhappy."""
+        """Strip out formatting characters which make API unhappy.
+
+        :param filter_xml: The XML for an Analytics filter.
+        :return: The input XML with relevant characters removed.
+        """
         return filter_xml.replace("\n", "").replace("\t", "")
 
     def _get_rows(self, report_data: dict) -> list:
-        """Convert single-row bare dict to a list containing that dict, if needed."""
+        """Convert single-row bare dict to a list containing that dict, if needed.
+
+        :param report_data: Dictionary with a `rows` key.
+        :return rows: List of rows of data.
+        """
         # This is a list of dictionaries if > 1 row...
         # but just a dictionary if only 1 row.
-        rows = report_data.get("rows")
+        rows: list | dict = report_data.get("rows", [])
         if isinstance(rows, dict):
             rows = [rows]
         return rows
