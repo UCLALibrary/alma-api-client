@@ -1,5 +1,5 @@
 services:
-  app_user:
+  dev:
     build: .
     # tty: true
     volumes: 

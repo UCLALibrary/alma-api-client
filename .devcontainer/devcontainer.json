@@ -1,7 +1,7 @@
 {
 	"name": "Alma API Client",
 	"dockerComposeFile": "../docker-compose.yml",
-	"service": "app_user",
+	"service": "dev",
 	"workspaceFolder": "/home/app_user/project",
 	"customizations": {
 			"vscode": {
