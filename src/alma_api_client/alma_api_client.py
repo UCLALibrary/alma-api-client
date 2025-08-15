@@ -58,21 +58,33 @@ class AlmaAPIClient:
         }
         return api_data
 
+    def _get_api_url(self, api: str) -> str:
+        """Get the full URL needed to call the API.  The base URL is aadded,
+        if the provided `api` does not already start with it.
+
+        :param api: The API, either as a full URL or the `/almaws/...` path.
+        :return url: The full URL for the API.
+        """
+        if api.startswith(self.BASE_URL):
+            return api
+        else:
+            return self.BASE_URL + api
+
     def _call_get_api(
         self, api: str, parameters: dict | None = None, format: str = "json"
     ) -> dict:
         """Send a GET request to the API.
 
-        :param api: The API to call, without the base URL.
+        :param api: The API to call, with or without the base URL.
         :param parameters: The optional request parameters.
         :param format: The desired format, expected to be json or xml.
         :return api_data: Response content and selected headers.
         """
         if parameters is None:
             parameters = {}
-        get_url = self.BASE_URL + api
+        api_url = self._get_api_url(api)
         headers = self._get_headers(format)
-        response = requests.get(get_url, headers=headers, params=parameters)
+        response = requests.get(api_url, headers=headers, params=parameters)
         api_data: dict = self._get_api_data(response, format)
         return api_data
 
@@ -81,7 +93,7 @@ class AlmaAPIClient:
     ) -> dict:
         """Send a POST request to the API.
 
-        :param api: The API to call, without the base URL.
+        :param api: The API to call, with or without the base URL.
         :param data: The data to send in the body of the request.
         :param parameters: The optional request parameters.
         :param format: The desired format, expected to be json or xml.
@@ -89,13 +101,11 @@ class AlmaAPIClient:
         """
         if parameters is None:
             parameters = {}
-        post_url = self.BASE_URL + api
+        api_url = self._get_api_url(api)
         headers = self._get_headers(format)
         # TODO: Non-JSON POST?
         # TODO: Enforce valid formats.
-        response = requests.post(
-            post_url, headers=headers, json=data, params=parameters
-        )
+        response = requests.post(api_url, headers=headers, json=data, params=parameters)
         api_data: dict = self._get_api_data(response, format)
         return api_data
 
@@ -104,7 +114,7 @@ class AlmaAPIClient:
     ) -> dict:
         """Send a PUT request to the API.
 
-        :param api: The API to call, without the base URL.
+        :param api: The API to call, with or without the base URL.
         :param data: The data to send in the body of the request.
         :param parameters: The optional request parameters.
         :param format: The desired format, expected to be json or xml.
@@ -113,17 +123,17 @@ class AlmaAPIClient:
         if parameters is None:
             parameters = {}
         headers = self._get_headers(format)
-        put_url = self.BASE_URL + api
+        api_url = self._get_api_url(api)
         # Handle both XML (required by update_bib) and default JSON
         # TODO: Enforce valid formats.
         if format == "xml":
             response = requests.put(
-                put_url, headers=headers, data=data, params=parameters
+                api_url, headers=headers, data=data, params=parameters
             )
         else:
             # json default
             response = requests.put(
-                put_url, headers=headers, json=data, params=parameters
+                api_url, headers=headers, json=data, params=parameters
             )
         api_data: dict = self._get_api_data(response, format)
         return api_data
@@ -133,20 +143,20 @@ class AlmaAPIClient:
     ) -> dict:
         """Send a DELETE request to the API.
 
-        :param api: The API to call, without the base URL.
+        :param api: The API to call, with or without the base URL.
         :param parameters: The optional request parameters.
         :param format: The desired format, expected to be json or xml.
         :return api_data: Response content and selected headers.
         """
         if parameters is None:
             parameters = {}
-        delete_url = self.BASE_URL + api
+        api_url = self._get_api_url(api)
         headers = self._get_headers(format)
-        response = requests.delete(delete_url, headers=headers, params=parameters)
+        response = requests.delete(api_url, headers=headers, params=parameters)
         # Success is HTTP 204, "No Content"
         if response.status_code != 204:
             # TODO: Real error handling
-            print(delete_url)
+            print(api_url)
             print(response.status_code)
             print(response.headers)
             print(response.text)
