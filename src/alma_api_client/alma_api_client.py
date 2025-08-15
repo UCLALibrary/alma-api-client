@@ -2,6 +2,10 @@ import requests
 from time import sleep
 from typing import Union
 
+# TODO: Experimental
+from models.sets import Set, SetMember
+
+
 # For requests data parameter, which is very flexible;
 # (optional) Dictionary, list of tuples, bytes, or file-like object to send...
 # this is better than Any.
@@ -158,7 +162,9 @@ class AlmaAPIClient:
         api = f"/almaws/v1/bibs/{bib_id}/holdings/{holding_id}/items"
         return self._call_post_api(api, data, parameters)
 
-    def get_items(self, bib_id: str, holding_id: str, parameters: dict | None = None) -> dict:
+    def get_items(
+        self, bib_id: str, holding_id: str, parameters: dict | None = None
+    ) -> dict:
         if parameters is None:
             parameters = {}
         api = f"/almaws/v1/bibs/{bib_id}/holdings/{holding_id}/items"
@@ -180,7 +186,9 @@ class AlmaAPIClient:
         api = "/almaws/v1/conf/jobs"
         return self._call_get_api(api, parameters)
 
-    def run_job(self, job_id, data: dict | None = None, parameters: dict | None = None) -> dict:
+    def run_job(
+        self, job_id, data: dict | None = None, parameters: dict | None = None
+    ) -> dict:
         # Tells Alma to queue / run a job; does *not* wait for completion.
         # Caller must provide job_id outside of parameters.
         # Running a scheduled job requires empty data {}; not sure about other jobs
@@ -260,7 +268,9 @@ class AlmaAPIClient:
         api = f"/almaws/v1/bibs/{mms_id}"
         return self._call_get_api(api, parameters, format="xml")
 
-    def update_bib(self, mms_id: str, data: bytes, parameters: dict | None = None) -> dict:
+    def update_bib(
+        self, mms_id: str, data: bytes, parameters: dict | None = None
+    ) -> dict:
         if parameters is None:
             parameters = {}
         api = f"/almaws/v1/bibs/{mms_id}"
@@ -309,7 +319,9 @@ class AlmaAPIClient:
         api = f"/almaws/v1/users/{user_id}"
         return self._call_get_api(api, parameters)
 
-    def update_user(self, user_id: str, user: dict, parameters: dict | None = None) -> dict:
+    def update_user(
+        self, user_id: str, user: dict, parameters: dict | None = None
+    ) -> dict:
         if parameters is None:
             parameters = {}
         api = f"/almaws/v1/users/{user_id}"
@@ -339,7 +351,9 @@ class AlmaAPIClient:
         api = "/almaws/v1/conf/mapping-tables"
         return self._call_get_api(api)
 
-    def get_mapping_table(self, mapping_table: str, parameters: dict | None = None) -> dict:
+    def get_mapping_table(
+        self, mapping_table: str, parameters: dict | None = None
+    ) -> dict:
         """Return specific mapping table, via name from get_mapping_tables()."""
         if parameters is None:
             parameters = {}
@@ -358,7 +372,9 @@ class AlmaAPIClient:
         api = f"/almaws/v1/conf/libraries/{library_code}"
         return self._call_get_api(api)
 
-    def get_circulation_desks(self, library_code: str, parameters: dict | None = None) -> dict:
+    def get_circulation_desks(
+        self, library_code: str, parameters: dict | None = None
+    ) -> dict:
         """Return data about circ desks in a single library, via code."""
         if parameters is None:
             parameters = {}
@@ -379,9 +395,46 @@ class AlmaAPIClient:
         api = f"/almaws/v1/acq/funds/{fund_id}"
         return self._call_get_api(api, parameters)
 
-    def update_fund(self, fund_id: str, fund: dict, parameters: dict | None = None) -> dict:
+    def update_fund(
+        self, fund_id: str, fund: dict, parameters: dict | None = None
+    ) -> dict:
         """Update a specific fund."""
         if parameters is None:
             parameters = {}
         api = f"/almaws/v1/acq/funds/{fund_id}"
         return self._call_put_api(api, fund, parameters)
+
+    # Experimental code below
+    def get_set(self, set_id: str) -> Set:
+        """Retrieve data about a specific set.
+
+        :param set_id: The Alma id for the set.
+        :return alma_set: An alma_api_client.models.Set object.
+        """
+        api = f"/almaws/v1/conf/sets/{set_id}"
+        api_response = self._call_get_api(api)
+        alma_set = Set(api_response=api_response)
+
+        # Get all member references and add them to the Set.
+        # TODO: Handle full API urls, as contained in API data.
+        members_api = alma_set.members_api.replace(self.BASE_URL, "")
+        members = []
+        offset = 0
+        limit = 100
+        while len(members) < alma_set.number_of_members:
+            data = self._call_get_api(
+                api=members_api, parameters={"offset": offset, "limit": limit}
+            )
+            new_members = data.get("member", [])
+            offset += len(new_members)
+            for new_member in new_members:
+                members.append(SetMember(api_response=new_member))
+
+        alma_set.add_members(members)
+        # TODO: For now, make sure we got as many as expected.
+        assert alma_set.number_of_members == len(alma_set.members)
+
+        return alma_set
+
+    def _retrieve_all(self):
+        pass
