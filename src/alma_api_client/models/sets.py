@@ -28,6 +28,20 @@ class SetContentType(Enum):
     VENDOR = "Vendor"
 
 
+class SetMember:
+    def __init__(self, api_response: dict) -> None:
+        if api_response:
+            self._create_from_api_response(api_response)
+
+    def __str__(self) -> str:
+        return f"{self.description} : {self.link}"
+
+    def _create_from_api_response(self, api_response: dict):
+        self.id = api_response.get("id", "")
+        self.description = api_response.get("description", "")
+        self.link = api_response.get("link", "")
+
+
 class Set:
     def __init__(self, name: str = "", api_response: dict | None = None) -> None:
         # Other fields could be added here, but unless we're creating sets from
@@ -47,19 +61,5 @@ class Set:
         content = api_response.get("content", {})
         return SetContentType(content.get("desc"))
 
-    def add_members(self, members: list) -> None:
+    def add_members(self, members: list[SetMember]) -> None:
         self.members = members
-
-
-class SetMember:
-    def __init__(self, api_response: dict) -> None:
-        if api_response:
-            self._create_from_api_response(api_response)
-
-    def __str__(self) -> str:
-        return f"{self.description} : {self.link}"
-
-    def _create_from_api_response(self, api_response: dict):
-        self.id = api_response.get("id", "")
-        self.description = api_response.get("description", "")
-        self.link = api_response.get("link", "")

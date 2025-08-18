@@ -414,37 +414,36 @@ class AlmaAPIClient:
         api = f"/almaws/v1/acq/funds/{fund_id}"
         return self._call_put_api(api, fund, parameters)
 
-    # Experimental code below
-    def get_set(self, set_id: str) -> Set:
-        """Retrieve data about a specific set.
+    # New / experimental code below.
+    def get_set(self, set_id: str, get_all_members: bool = True) -> Set:
+        """Retrieve data for a specific set.
 
         :param set_id: The Alma id for the set.
+        :param get_all_members: Fetch all set members.
         :return alma_set: An alma_api_client.models.Set object.
         """
         api = f"/almaws/v1/conf/sets/{set_id}"
         api_response = self._call_get_api(api)
         alma_set = Set(api_response=api_response)
 
-        # Get all member references and add them to the Set.
-        # TODO: Handle full API urls, as contained in API data.
-        members_api = alma_set.members_api.replace(self.BASE_URL, "")
         members = []
-        offset = 0
-        limit = 100
-        while len(members) < alma_set.number_of_members:
-            data = self._call_get_api(
-                api=members_api, parameters={"offset": offset, "limit": limit}
-            )
-            new_members = data.get("member", [])
-            offset += len(new_members)
-            for new_member in new_members:
-                members.append(SetMember(api_response=new_member))
+        if get_all_members:
+            # Get all member references and add them to the Set.
+            offset = 0
+            limit = 100
+            while len(members) < alma_set.number_of_members:
+                data = self._call_get_api(
+                    api=alma_set.members_api,
+                    parameters={"offset": offset, "limit": limit},
+                )
+                new_members = data.get("member", [])
+                offset += len(new_members)
+                for new_member in new_members:
+                    members.append(SetMember(api_response=new_member))
 
         alma_set.add_members(members)
-        # TODO: For now, make sure we got as many as expected.
-        assert alma_set.number_of_members == len(alma_set.members)
-
         return alma_set
 
     def _retrieve_all(self):
+        # TODO: Is it practical to generalize API iteration to fetch all whatevers?
         pass
