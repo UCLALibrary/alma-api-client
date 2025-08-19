@@ -2,6 +2,10 @@ import requests
 from time import sleep
 from typing import Union
 
+# TODO: Experimental
+from models.sets import Set, SetMember
+
+
 # For requests data parameter, which is very flexible;
 # (optional) Dictionary, list of tuples, bytes, or file-like object to send...
 # this is better than Any.
@@ -54,21 +58,33 @@ class AlmaAPIClient:
         }
         return api_data
 
+    def _get_api_url(self, api: str) -> str:
+        """Get the full URL needed to call the API.  The base URL is aadded,
+        if the provided `api` does not already start with it.
+
+        :param api: The API, either as a full URL or the `/almaws/...` path.
+        :return url: The full URL for the API.
+        """
+        if api.startswith(self.BASE_URL):
+            return api
+        else:
+            return self.BASE_URL + api
+
     def _call_get_api(
         self, api: str, parameters: dict | None = None, format: str = "json"
     ) -> dict:
         """Send a GET request to the API.
 
-        :param api: The API to call, without the base URL.
+        :param api: The API to call, with or without the base URL.
         :param parameters: The optional request parameters.
         :param format: The desired format, expected to be json or xml.
         :return api_data: Response content and selected headers.
         """
         if parameters is None:
             parameters = {}
-        get_url = self.BASE_URL + api
+        api_url = self._get_api_url(api)
         headers = self._get_headers(format)
-        response = requests.get(get_url, headers=headers, params=parameters)
+        response = requests.get(api_url, headers=headers, params=parameters)
         api_data: dict = self._get_api_data(response, format)
         return api_data
 
@@ -77,7 +93,7 @@ class AlmaAPIClient:
     ) -> dict:
         """Send a POST request to the API.
 
-        :param api: The API to call, without the base URL.
+        :param api: The API to call, with or without the base URL.
         :param data: The data to send in the body of the request.
         :param parameters: The optional request parameters.
         :param format: The desired format, expected to be json or xml.
@@ -85,13 +101,11 @@ class AlmaAPIClient:
         """
         if parameters is None:
             parameters = {}
-        post_url = self.BASE_URL + api
+        api_url = self._get_api_url(api)
         headers = self._get_headers(format)
         # TODO: Non-JSON POST?
         # TODO: Enforce valid formats.
-        response = requests.post(
-            post_url, headers=headers, json=data, params=parameters
-        )
+        response = requests.post(api_url, headers=headers, json=data, params=parameters)
         api_data: dict = self._get_api_data(response, format)
         return api_data
 
@@ -100,7 +114,7 @@ class AlmaAPIClient:
     ) -> dict:
         """Send a PUT request to the API.
 
-        :param api: The API to call, without the base URL.
+        :param api: The API to call, with or without the base URL.
         :param data: The data to send in the body of the request.
         :param parameters: The optional request parameters.
         :param format: The desired format, expected to be json or xml.
@@ -109,17 +123,17 @@ class AlmaAPIClient:
         if parameters is None:
             parameters = {}
         headers = self._get_headers(format)
-        put_url = self.BASE_URL + api
+        api_url = self._get_api_url(api)
         # Handle both XML (required by update_bib) and default JSON
         # TODO: Enforce valid formats.
         if format == "xml":
             response = requests.put(
-                put_url, headers=headers, data=data, params=parameters
+                api_url, headers=headers, data=data, params=parameters
             )
         else:
             # json default
             response = requests.put(
-                put_url, headers=headers, json=data, params=parameters
+                api_url, headers=headers, json=data, params=parameters
             )
         api_data: dict = self._get_api_data(response, format)
         return api_data
@@ -129,20 +143,20 @@ class AlmaAPIClient:
     ) -> dict:
         """Send a DELETE request to the API.
 
-        :param api: The API to call, without the base URL.
+        :param api: The API to call, with or without the base URL.
         :param parameters: The optional request parameters.
         :param format: The desired format, expected to be json or xml.
         :return api_data: Response content and selected headers.
         """
         if parameters is None:
             parameters = {}
-        delete_url = self.BASE_URL + api
+        api_url = self._get_api_url(api)
         headers = self._get_headers(format)
-        response = requests.delete(delete_url, headers=headers, params=parameters)
+        response = requests.delete(api_url, headers=headers, params=parameters)
         # Success is HTTP 204, "No Content"
         if response.status_code != 204:
             # TODO: Real error handling
-            print(delete_url)
+            print(api_url)
             print(response.status_code)
             print(response.headers)
             print(response.text)
@@ -158,7 +172,9 @@ class AlmaAPIClient:
         api = f"/almaws/v1/bibs/{bib_id}/holdings/{holding_id}/items"
         return self._call_post_api(api, data, parameters)
 
-    def get_items(self, bib_id: str, holding_id: str, parameters: dict | None = None) -> dict:
+    def get_items(
+        self, bib_id: str, holding_id: str, parameters: dict | None = None
+    ) -> dict:
         if parameters is None:
             parameters = {}
         api = f"/almaws/v1/bibs/{bib_id}/holdings/{holding_id}/items"
@@ -180,7 +196,9 @@ class AlmaAPIClient:
         api = "/almaws/v1/conf/jobs"
         return self._call_get_api(api, parameters)
 
-    def run_job(self, job_id, data: dict | None = None, parameters: dict | None = None) -> dict:
+    def run_job(
+        self, job_id, data: dict | None = None, parameters: dict | None = None
+    ) -> dict:
         # Tells Alma to queue / run a job; does *not* wait for completion.
         # Caller must provide job_id outside of parameters.
         # Running a scheduled job requires empty data {}; not sure about other jobs
@@ -260,7 +278,9 @@ class AlmaAPIClient:
         api = f"/almaws/v1/bibs/{mms_id}"
         return self._call_get_api(api, parameters, format="xml")
 
-    def update_bib(self, mms_id: str, data: bytes, parameters: dict | None = None) -> dict:
+    def update_bib(
+        self, mms_id: str, data: bytes, parameters: dict | None = None
+    ) -> dict:
         if parameters is None:
             parameters = {}
         api = f"/almaws/v1/bibs/{mms_id}"
@@ -309,7 +329,9 @@ class AlmaAPIClient:
         api = f"/almaws/v1/users/{user_id}"
         return self._call_get_api(api, parameters)
 
-    def update_user(self, user_id: str, user: dict, parameters: dict | None = None) -> dict:
+    def update_user(
+        self, user_id: str, user: dict, parameters: dict | None = None
+    ) -> dict:
         if parameters is None:
             parameters = {}
         api = f"/almaws/v1/users/{user_id}"
@@ -339,7 +361,9 @@ class AlmaAPIClient:
         api = "/almaws/v1/conf/mapping-tables"
         return self._call_get_api(api)
 
-    def get_mapping_table(self, mapping_table: str, parameters: dict | None = None) -> dict:
+    def get_mapping_table(
+        self, mapping_table: str, parameters: dict | None = None
+    ) -> dict:
         """Return specific mapping table, via name from get_mapping_tables()."""
         if parameters is None:
             parameters = {}
@@ -358,7 +382,9 @@ class AlmaAPIClient:
         api = f"/almaws/v1/conf/libraries/{library_code}"
         return self._call_get_api(api)
 
-    def get_circulation_desks(self, library_code: str, parameters: dict | None = None) -> dict:
+    def get_circulation_desks(
+        self, library_code: str, parameters: dict | None = None
+    ) -> dict:
         """Return data about circ desks in a single library, via code."""
         if parameters is None:
             parameters = {}
@@ -379,9 +405,45 @@ class AlmaAPIClient:
         api = f"/almaws/v1/acq/funds/{fund_id}"
         return self._call_get_api(api, parameters)
 
-    def update_fund(self, fund_id: str, fund: dict, parameters: dict | None = None) -> dict:
+    def update_fund(
+        self, fund_id: str, fund: dict, parameters: dict | None = None
+    ) -> dict:
         """Update a specific fund."""
         if parameters is None:
             parameters = {}
         api = f"/almaws/v1/acq/funds/{fund_id}"
         return self._call_put_api(api, fund, parameters)
+
+    # New / experimental code below.
+    def get_set(self, set_id: str, get_all_members: bool = True) -> Set:
+        """Retrieve data for a specific set.
+
+        :param set_id: The Alma id for the set.
+        :param get_all_members: Fetch all set members.
+        :return alma_set: An alma_api_client.models.Set object.
+        """
+        api = f"/almaws/v1/conf/sets/{set_id}"
+        api_response = self._call_get_api(api)
+        alma_set = Set(api_response=api_response)
+
+        members = []
+        if get_all_members:
+            # Get all member references and add them to the Set.
+            offset = 0
+            limit = 100
+            while len(members) < alma_set.number_of_members:
+                data = self._call_get_api(
+                    api=alma_set.members_api,
+                    parameters={"offset": offset, "limit": limit},
+                )
+                new_members = data.get("member", [])
+                offset += len(new_members)
+                for new_member in new_members:
+                    members.append(SetMember(api_response=new_member))
+
+        alma_set.add_members(members)
+        return alma_set
+
+    def _retrieve_all(self):
+        # TODO: Is it practical to generalize API iteration to fetch all whatevers?
+        pass
