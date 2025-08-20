@@ -3,7 +3,7 @@ from time import sleep
 from typing import Union
 
 # TODO: Experimental
-from models.sets import Set, SetMember
+from .models.sets import Set, SetMember
 
 
 # For requests data parameter, which is very flexible;
