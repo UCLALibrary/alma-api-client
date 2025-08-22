@@ -1,9 +1,11 @@
 import requests
 from time import sleep
 from typing import Union
+from warnings import deprecated
 
 # TODO: Experimental
 from .models.sets import Set, SetMember
+from .models.marc_records import AlmaMARCRecord
 
 
 # For requests data parameter, which is very flexible;
@@ -269,6 +271,7 @@ class AlmaAPIClient:
         api = f"/almaws/v1/acq/vendors/{vendor_code}"
         return self._call_get_api(api, parameters)
 
+    @deprecated("Use get_bib_record() instead.")
     def get_bib(self, mms_id: str, parameters: dict | None = None) -> dict:
         """Return dictionary response, with Alma bib record (in Alma XML format),
         in "content" element.
@@ -286,6 +289,7 @@ class AlmaAPIClient:
         api = f"/almaws/v1/bibs/{mms_id}"
         return self._call_put_api(api, data, parameters, format="xml")
 
+    @deprecated("Use get_holdings_record() instead")
     def get_holding(
         self, mms_id: str, holding_id: str, parameters: dict | None = None
     ) -> dict:
@@ -447,3 +451,37 @@ class AlmaAPIClient:
     def _retrieve_all(self):
         # TODO: Is it practical to generalize API iteration to fetch all whatevers?
         pass
+
+    def _get_marc_record(
+        self,
+        api: str,
+        parameters: dict | None = None,
+    ) -> AlmaMARCRecord:
+        if parameters is None:
+            parameters = {}
+        api_response = self._call_get_api(api, parameters, format="xml")
+
+        return AlmaMARCRecord(api_response)
+
+    def get_bib_record(
+        self, bib_id: str, parameters: dict | None = None
+    ) -> AlmaMARCRecord:
+        api = f"/almaws/v1/bibs/{bib_id}"
+        return self._get_marc_record(api, parameters)
+
+    def get_holdings_record(
+        self, bib_id: str, holdings_id: str, parameters: dict | None = None
+    ) -> AlmaMARCRecord:
+        api = f"/almaws/v1/bibs/{bib_id}/holdings/{holdings_id}"
+        return self._get_marc_record(api, parameters)
+
+    def update_bib_record(
+        self, bib_id: str, bib_record: AlmaMARCRecord, parameters: dict | None = None
+    ) -> dict:
+        if parameters is None:
+            parameters = {}
+        api = f"/almaws/v1/bibs/{bib_id}"
+        data = bib_record.prepare_xml_for_update()
+        # The response includes the full Alma XML in "content", and our standard
+        # "api_response" key with status and other info.
+        return self._call_put_api(api, data, parameters, format="xml")
