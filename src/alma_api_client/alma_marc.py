@@ -1,21 +1,38 @@
 import xml.etree.ElementTree as ET
-from pymarc import parse_xml_to_array, record_to_xml_node, Record
 from io import BytesIO
+from pymarc import parse_xml_to_array, record_to_xml_node, Record
+from warnings import deprecated
 
 
+# TODO: Add / update deprecations
+@deprecated("Use get_pymarc_record_from_xml() instead.")
 def get_pymarc_record_from_bib(alma_bib: bytes) -> Record | None:
     """Convert an Alma bibliographic record, as returned by the API, to a
     pymarc Record containing <record> content.
 
+    This is now just a wrapper around `get_pymarc_record_from_xml`, and will
+    be removed in a future version.
+
     :param alma_bib: Data from the Alma API representing a bib record.
     :return pymarc_record: Pymarc record
     """
-    # TODO: Is this really just for bib records, or holdings / any MARC?
-    root = ET.fromstring(alma_bib)
+    return get_pymarc_record_from_xml(marc_xml=alma_bib)
+
+
+def get_pymarc_record_from_xml(marc_xml: bytes) -> Record | None:
+    """Convert a MARCXML record, as returned by the API, to a
+    pymarc Record.
+
+    :param marc_xml: Data from the Alma API representing a MARC record (biliographic or holdings).
+    :return pymarc_record: Pymarc record
+    """
+    root = ET.fromstring(marc_xml)
     record = root.find("record")
     if record:
         # xml_declaration=False since we want only the <record> element, not a full XML doc
-        marc_xml = ET.tostring(record, encoding="utf8", method="xml", xml_declaration=False)
+        marc_xml = ET.tostring(
+            record, encoding="utf8", method="xml", xml_declaration=False
+        )
         # pymarc needs file-like object
         with BytesIO(marc_xml) as fh:
             pymarc_record = parse_xml_to_array(fh)[0]
