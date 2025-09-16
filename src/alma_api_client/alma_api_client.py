@@ -5,7 +5,11 @@ from warnings import deprecated
 
 # TODO: Experimental
 from .models.sets import Set, SetMember
-from .models.marc_records import AlmaMARCRecord
+from .models.marc_records import (
+    AuthorityRecord,
+    BibRecord,
+    HoldingsRecord,
+)
 
 
 # For requests data parameter, which is very flexible;
@@ -105,9 +109,16 @@ class AlmaAPIClient:
             parameters = {}
         api_url = self._get_api_url(api)
         headers = self._get_headers(format)
-        # TODO: Non-JSON POST?
+        # Handle both XML (required by MARC methods) and default JSON.
         # TODO: Enforce valid formats.
-        response = requests.post(api_url, headers=headers, json=data, params=parameters)
+        if format == "xml":
+            response = requests.post(
+                api_url, headers=headers, data=data, params=parameters
+            )
+        else:
+            response = requests.post(
+                api_url, headers=headers, json=data, params=parameters
+            )
         api_data: dict = self._get_api_data(response, format)
         return api_data
 
@@ -456,32 +467,35 @@ class AlmaAPIClient:
         self,
         api: str,
         parameters: dict | None = None,
-    ) -> AlmaMARCRecord:
+    ) -> dict:
         if parameters is None:
             parameters = {}
-        api_response = self._call_get_api(api, parameters, format="xml")
+        return self._call_get_api(api, parameters, format="xml")
 
-        return AlmaMARCRecord(api_response)
+    def get_authority_record(
+        self, authority_id: str, parameters: dict | None = None
+    ) -> AuthorityRecord:
+        api = f"/almaws/v1/bibs/authorities/{authority_id}"
+        api_response = self._get_marc_record(api, parameters)
+        return AuthorityRecord(api_response)
 
-    def get_bib_record(
-        self, bib_id: str, parameters: dict | None = None
-    ) -> AlmaMARCRecord:
+    def get_bib_record(self, bib_id: str, parameters: dict | None = None) -> BibRecord:
         api = f"/almaws/v1/bibs/{bib_id}"
-        return self._get_marc_record(api, parameters)
+        api_response = self._get_marc_record(api, parameters)
+        return BibRecord(api_response)
 
     def get_holdings_record(
         self, bib_id: str, holdings_id: str, parameters: dict | None = None
-    ) -> AlmaMARCRecord:
+    ) -> HoldingsRecord:
         api = f"/almaws/v1/bibs/{bib_id}/holdings/{holdings_id}"
-        return self._get_marc_record(api, parameters)
+        api_response = self._get_marc_record(api, parameters)
+        return HoldingsRecord(api_response)
 
     def update_bib_record(
-        self, bib_id: str, bib_record: AlmaMARCRecord, parameters: dict | None = None
+        self, bib_id: str, bib_record: BibRecord, parameters: dict | None = None
     ) -> dict:
         if parameters is None:
             parameters = {}
         api = f"/almaws/v1/bibs/{bib_id}"
         data = bib_record.prepare_xml_for_update()
-        # The response includes the full Alma XML in "content", and our standard
-        # "api_response" key with status and other info.
         return self._call_put_api(api, data, parameters, format="xml")
