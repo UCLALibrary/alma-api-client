@@ -491,11 +491,28 @@ class AlmaAPIClient:
         api_response = self._get_marc_record(api, parameters)
         return HoldingsRecord(api_response)
 
+    def create_bib_record(
+        self, bib_record: BibRecord, parameters: dict | None = None
+    ) -> dict:
+        if parameters is None:
+            parameters = {}
+        api = "/almaws/v1/bibs"
+        data = bib_record.alma_xml
+        # TODO: Return the actual record created.
+        return self._call_post_api(api, data, parameters, format="xml")
+
     def update_bib_record(
         self, bib_id: str, bib_record: BibRecord, parameters: dict | None = None
     ) -> dict:
         if parameters is None:
             parameters = {}
         api = f"/almaws/v1/bibs/{bib_id}"
-        data = bib_record.prepare_xml_for_update()
+        data = bib_record.alma_xml
+        # TODO: Return the actual record updated.
         return self._call_put_api(api, data, parameters, format="xml")
+
+    def delete_bib_record(self, bib_id: str, parameters: dict | None = None) -> dict:
+        if parameters is None:
+            parameters = {}
+        api = f"/almaws/v1/bibs/{bib_id}"
+        return self._call_delete_api(api, parameters)
