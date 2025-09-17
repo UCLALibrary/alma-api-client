@@ -19,6 +19,7 @@ def get_pymarc_record_from_bib(alma_bib: bytes) -> Record | None:
     return get_pymarc_record_from_xml(marc_xml=alma_bib)
 
 
+@deprecated("Use classes from marc_records instead.")
 def get_pymarc_record_from_xml(marc_xml: bytes) -> Record | None:
     """Convert a MARCXML record, as returned by the API, to a
     pymarc Record.
@@ -41,6 +42,7 @@ def get_pymarc_record_from_xml(marc_xml: bytes) -> Record | None:
         return None
 
 
+@deprecated("Use classes from marc_records instead.")
 def prepare_bib_for_update(original_bib: bytes, new_record: Record) -> bytes | None:
     """Takes an Alma Bib and a pymarc Record and returns an updated Bib bytestring
     containing data from the new Record in the <record> element."""

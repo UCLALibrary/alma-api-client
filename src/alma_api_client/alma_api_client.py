@@ -292,6 +292,7 @@ class AlmaAPIClient:
         api = f"/almaws/v1/bibs/{mms_id}"
         return self._call_get_api(api, parameters, format="xml")
 
+    @deprecated("Use update_bib_record() instead.")
     def update_bib(
         self, mms_id: str, data: bytes, parameters: dict | None = None
     ) -> dict:
@@ -312,6 +313,7 @@ class AlmaAPIClient:
         api = f"/almaws/v1/bibs/{mms_id}/holdings/{holding_id}"
         return self._call_get_api(api, parameters, format="xml")
 
+    @deprecated("Use get_holding_record() instead.")
     def update_holding(
         self, mms_id: str, holding_id: str, data: bytes, parameters: dict | None = None
     ) -> dict:
