@@ -60,6 +60,8 @@ class AlmaMARCRecord:
         :return: None
         """
         # Convert XML to dictionary, since we hate XML.
+        # This gives something like:
+        # {'record_type': {'attribute_1': 'value_1', 'attribute_2': 'value_2'}}
         # TODO: Consider changing attr_prefix and cdata_key from xmltodict defaults.
         alma_data = xmltodict.parse(alma_xml)
 
