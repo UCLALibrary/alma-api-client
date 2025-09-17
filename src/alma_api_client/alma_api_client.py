@@ -1,9 +1,11 @@
 import requests
 from time import sleep
-from typing import Union
-from warnings import deprecated
+from typing import Union, TypeAlias
 
-# TODO: Experimental
+# TODO: Once 3.13 is supported, update this.
+# from warnings import deprecated # Python 3.13+
+from typing_extensions import deprecated  # Python 3.11
+
 from .models.sets import Set, SetMember
 from .models.marc_records import (
     AuthorityRecord,
@@ -15,7 +17,9 @@ from .models.marc_records import (
 # For requests data parameter, which is very flexible;
 # (optional) Dictionary, list of tuples, bytes, or file-like object to send...
 # this is better than Any.
-type Data = Union[bytes, dict, list[tuple]]
+# TODO: Once 3.13 is supported, update this:
+# type Data = Union[bytes, dict, list[tuple]] # Python 3.12+
+Data: TypeAlias = Union[bytes, dict, list[tuple]]  # Python 3.11
 
 
 class AlmaAPIClient:
