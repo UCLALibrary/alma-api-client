@@ -8,7 +8,7 @@ from .models.sets import Set, SetMember
 from .models.marc_records import (
     AuthorityRecord,
     BibRecord,
-    HoldingsRecord,
+    HoldingRecord,
 )
 
 
@@ -300,7 +300,7 @@ class AlmaAPIClient:
         api = f"/almaws/v1/bibs/{mms_id}"
         return self._call_put_api(api, data, parameters, format="xml")
 
-    @deprecated("Use get_holdings_record() instead")
+    @deprecated("Use get_holding_record() instead")
     def get_holding(
         self, mms_id: str, holding_id: str, parameters: dict | None = None
     ) -> dict:
@@ -484,12 +484,14 @@ class AlmaAPIClient:
         api_response = self._get_marc_record(api, parameters)
         return BibRecord(api_response)
 
-    def get_holdings_record(
-        self, bib_id: str, holdings_id: str, parameters: dict | None = None
-    ) -> HoldingsRecord:
-        api = f"/almaws/v1/bibs/{bib_id}/holdings/{holdings_id}"
+    def get_holding_record(
+        self, bib_id: str, holding_id: str, parameters: dict | None = None
+    ) -> HoldingRecord:
+        api = f"/almaws/v1/bibs/{bib_id}/holdings/{holding_id}"
         api_response = self._get_marc_record(api, parameters)
-        return HoldingsRecord(api_response)
+        # TODO: Consider adding bib_id to holding record, which does not get it
+        # from API response.
+        return HoldingRecord(api_response)
 
     def create_bib_record(
         self, bib_record: BibRecord, parameters: dict | None = None
@@ -515,4 +517,36 @@ class AlmaAPIClient:
         if parameters is None:
             parameters = {}
         api = f"/almaws/v1/bibs/{bib_id}"
+        return self._call_delete_api(api, parameters)
+
+    def create_holding_record(
+        self, bib_id: str, holding_record: HoldingRecord, parameters: dict | None = None
+    ) -> dict:
+        if parameters is None:
+            parameters = {}
+        api = f"/almaws/v1/bibs/{bib_id}/holdings"
+        data = holding_record.alma_xml
+        # TODO: Return the actual record created.
+        return self._call_post_api(api, data, parameters, format="xml")
+
+    def update_holding_record(
+        self,
+        bib_id: str,
+        holding_record: HoldingRecord,
+        parameters: dict | None = None,
+    ) -> dict:
+        if parameters is None:
+            parameters = {}
+        holding_id = holding_record.holding_id
+        api = f"/almaws/v1/bibs/{bib_id}/holdings/{holding_id}"
+        data = holding_record.alma_xml
+        # TODO: Return the actual record updated.
+        return self._call_put_api(api, data, format="xml")
+
+    def delete_holding_record(
+        self, bib_id: str, holding_id: str, parameters: dict | None = None
+    ) -> dict:
+        if parameters is None:
+            parameters = {}
+        api = f"/almaws/v1/bibs/{bib_id}/holdings/{holding_id}"
         return self._call_delete_api(api, parameters)

@@ -145,11 +145,11 @@ class BibRecord(AlmaMARCRecord):
         self._record_type = "bib"
 
     @property
-    def mms_id(self) -> str:
+    def bib_id(self) -> str:
         return self._all_attributes.get("mms_id", "")
 
 
-class HoldingsRecord(AlmaMARCRecord):
+class HoldingRecord(AlmaMARCRecord):
     # These attributes are in addition to those defined in the base class.
     __slots__ = [
         "suppress_from_publishing",
@@ -162,3 +162,7 @@ class HoldingsRecord(AlmaMARCRecord):
     @property
     def created_by(self) -> str:
         return self._all_attributes.get("created_by", "")
+
+    @property
+    def holding_id(self) -> str:
+        return self._all_attributes.get("holding_id", "")
