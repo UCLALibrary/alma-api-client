@@ -1,7 +1,10 @@
 import xml.etree.ElementTree as ET
 from io import BytesIO
 from pymarc import parse_xml_to_array, record_to_xml_node, Record
-from warnings import deprecated
+
+# TODO: Once 3.13 is supported, update this.
+# from warnings import deprecated # Python 3.13+
+from typing_extensions import deprecated  # Python 3.11
 
 
 # TODO: Add / update deprecations

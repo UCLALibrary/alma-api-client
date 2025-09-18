@@ -476,16 +476,39 @@ class AlmaAPIClient:
     ) -> dict:
         if parameters is None:
             parameters = {}
-        return self._call_get_api(api, parameters, format="xml")
+        api_data = self._call_get_api(api, parameters, format="xml")
+        # TODO: Change _get_api_data() to return an object which exposes attributes
+        # in a more friendly way. This could involve parsing XML for error messages & codes,
+        # as well as response status.
+        # Will require updating all client methods.
+        # For now, this is isolated to the new record retrieval methods.
+        if api_data.get("api_response", {}).get("status_code", "") != "200":
+            raise ValueError(f"Unable to get MARC record for {api}")
+        else:
+            return api_data
 
     def get_authority_record(
         self, authority_id: str, parameters: dict | None = None
     ) -> AuthorityRecord:
+        """Retrieve authority record from Alma, as an `AuthorityRecord`.
+
+        :param authority_id: The Alma authority record id.
+        :param parameters: Other parameters, see Alma documentation for details.
+        :raises: `ValueError`, if Alma cannot find a record matching the id.
+        :return: The record.
+        """
         api = f"/almaws/v1/bibs/authorities/{authority_id}"
         api_response = self._get_marc_record(api, parameters)
         return AuthorityRecord(api_response)
 
     def get_bib_record(self, bib_id: str, parameters: dict | None = None) -> BibRecord:
+        """Retrieve bibliographic record from Alma, as a `BibRecord`.
+
+        :param bib_id: The Alma bib record id.
+        :param parameters: Other parameters, see Alma documentation for details.
+        :raises: `ValueError`, if Alma cannot find a record matching the id.
+        :return: The record.
+        """
         api = f"/almaws/v1/bibs/{bib_id}"
         api_response = self._get_marc_record(api, parameters)
         return BibRecord(api_response)
@@ -493,6 +516,14 @@ class AlmaAPIClient:
     def get_holding_record(
         self, bib_id: str, holding_id: str, parameters: dict | None = None
     ) -> HoldingRecord:
+        """Retrieve holding record from Alma, as an `HoldingRecord`.
+
+        :param bib_id: The Alma bib record id.
+        :param holding_id: The Alma holding record id.
+        :param parameters: Other parameters, see Alma documentation for details.
+        :raises: `ValueError`, if Alma cannot find a record matching the id.
+        :return: The record.
+        """
         api = f"/almaws/v1/bibs/{bib_id}/holdings/{holding_id}"
         api_response = self._get_marc_record(api, parameters)
         # TODO: Consider adding bib_id to holding record, which does not get it
