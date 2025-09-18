@@ -1,15 +1,25 @@
 import requests
 from time import sleep
-from typing import Union
+from typing import Union, TypeAlias
 
-# TODO: Experimental
+# TODO: Once 3.13 is supported, update this.
+# from warnings import deprecated # Python 3.13+
+from typing_extensions import deprecated  # Python 3.11
+
 from .models.sets import Set, SetMember
+from .models.marc_records import (
+    AuthorityRecord,
+    BibRecord,
+    HoldingRecord,
+)
 
 
 # For requests data parameter, which is very flexible;
 # (optional) Dictionary, list of tuples, bytes, or file-like object to send...
 # this is better than Any.
-type Data = Union[bytes, dict, list[tuple]]
+# TODO: Once 3.13 is supported, update this:
+# type Data = Union[bytes, dict, list[tuple]] # Python 3.12+
+Data: TypeAlias = Union[bytes, dict, list[tuple]]  # Python 3.11
 
 
 class AlmaAPIClient:
@@ -103,9 +113,16 @@ class AlmaAPIClient:
             parameters = {}
         api_url = self._get_api_url(api)
         headers = self._get_headers(format)
-        # TODO: Non-JSON POST?
+        # Handle both XML (required by MARC methods) and default JSON.
         # TODO: Enforce valid formats.
-        response = requests.post(api_url, headers=headers, json=data, params=parameters)
+        if format == "xml":
+            response = requests.post(
+                api_url, headers=headers, data=data, params=parameters
+            )
+        else:
+            response = requests.post(
+                api_url, headers=headers, json=data, params=parameters
+            )
         api_data: dict = self._get_api_data(response, format)
         return api_data
 
@@ -269,6 +286,7 @@ class AlmaAPIClient:
         api = f"/almaws/v1/acq/vendors/{vendor_code}"
         return self._call_get_api(api, parameters)
 
+    @deprecated("Use get_bib_record() instead.")
     def get_bib(self, mms_id: str, parameters: dict | None = None) -> dict:
         """Return dictionary response, with Alma bib record (in Alma XML format),
         in "content" element.
@@ -278,6 +296,7 @@ class AlmaAPIClient:
         api = f"/almaws/v1/bibs/{mms_id}"
         return self._call_get_api(api, parameters, format="xml")
 
+    @deprecated("Use update_bib_record() instead.")
     def update_bib(
         self, mms_id: str, data: bytes, parameters: dict | None = None
     ) -> dict:
@@ -286,6 +305,7 @@ class AlmaAPIClient:
         api = f"/almaws/v1/bibs/{mms_id}"
         return self._call_put_api(api, data, parameters, format="xml")
 
+    @deprecated("Use get_holding_record() instead")
     def get_holding(
         self, mms_id: str, holding_id: str, parameters: dict | None = None
     ) -> dict:
@@ -297,6 +317,7 @@ class AlmaAPIClient:
         api = f"/almaws/v1/bibs/{mms_id}/holdings/{holding_id}"
         return self._call_get_api(api, parameters, format="xml")
 
+    @deprecated("Use get_holding_record() instead.")
     def update_holding(
         self, mms_id: str, holding_id: str, data: bytes, parameters: dict | None = None
     ) -> dict:
@@ -447,3 +468,122 @@ class AlmaAPIClient:
     def _retrieve_all(self):
         # TODO: Is it practical to generalize API iteration to fetch all whatevers?
         pass
+
+    def _get_marc_record(
+        self,
+        api: str,
+        parameters: dict | None = None,
+    ) -> dict:
+        if parameters is None:
+            parameters = {}
+        api_data = self._call_get_api(api, parameters, format="xml")
+        # TODO: Change _get_api_data() to return an object which exposes attributes
+        # in a more friendly way. This could involve parsing XML for error messages & codes,
+        # as well as response status.
+        # Will require updating all client methods.
+        # For now, this is isolated to the new record retrieval methods.
+        if api_data.get("api_response", {}).get("status_code", "") != 200:
+            raise ValueError(f"Unable to get MARC record for {api}")
+        else:
+            return api_data
+
+    def get_authority_record(
+        self, authority_id: str, parameters: dict | None = None
+    ) -> AuthorityRecord:
+        """Retrieve authority record from Alma, as an `AuthorityRecord`.
+
+        :param authority_id: The Alma authority record id.
+        :param parameters: Other parameters, see Alma documentation for details.
+        :raises: `ValueError`, if Alma cannot find a record matching the id.
+        :return: The record.
+        """
+        api = f"/almaws/v1/bibs/authorities/{authority_id}"
+        api_response = self._get_marc_record(api, parameters)
+        return AuthorityRecord(api_response)
+
+    def get_bib_record(self, bib_id: str, parameters: dict | None = None) -> BibRecord:
+        """Retrieve bibliographic record from Alma, as a `BibRecord`.
+
+        :param bib_id: The Alma bib record id.
+        :param parameters: Other parameters, see Alma documentation for details.
+        :raises: `ValueError`, if Alma cannot find a record matching the id.
+        :return: The record.
+        """
+        api = f"/almaws/v1/bibs/{bib_id}"
+        api_response = self._get_marc_record(api, parameters)
+        return BibRecord(api_response)
+
+    def get_holding_record(
+        self, bib_id: str, holding_id: str, parameters: dict | None = None
+    ) -> HoldingRecord:
+        """Retrieve holding record from Alma, as an `HoldingRecord`.
+
+        :param bib_id: The Alma bib record id.
+        :param holding_id: The Alma holding record id.
+        :param parameters: Other parameters, see Alma documentation for details.
+        :raises: `ValueError`, if Alma cannot find a record matching the id.
+        :return: The record.
+        """
+        api = f"/almaws/v1/bibs/{bib_id}/holdings/{holding_id}"
+        api_response = self._get_marc_record(api, parameters)
+        # TODO: Consider adding bib_id to holding record, which does not get it
+        # from API response.
+        return HoldingRecord(api_response)
+
+    def create_bib_record(
+        self, bib_record: BibRecord, parameters: dict | None = None
+    ) -> dict:
+        if parameters is None:
+            parameters = {}
+        api = "/almaws/v1/bibs"
+        data = bib_record.alma_xml
+        # TODO: Return the actual record created.
+        return self._call_post_api(api, data, parameters, format="xml")
+
+    def update_bib_record(
+        self, bib_id: str, bib_record: BibRecord, parameters: dict | None = None
+    ) -> dict:
+        if parameters is None:
+            parameters = {}
+        api = f"/almaws/v1/bibs/{bib_id}"
+        data = bib_record.alma_xml
+        # TODO: Return the actual record updated.
+        return self._call_put_api(api, data, parameters, format="xml")
+
+    def delete_bib_record(self, bib_id: str, parameters: dict | None = None) -> dict:
+        if parameters is None:
+            parameters = {}
+        api = f"/almaws/v1/bibs/{bib_id}"
+        return self._call_delete_api(api, parameters)
+
+    def create_holding_record(
+        self, bib_id: str, holding_record: HoldingRecord, parameters: dict | None = None
+    ) -> dict:
+        if parameters is None:
+            parameters = {}
+        api = f"/almaws/v1/bibs/{bib_id}/holdings"
+        data = holding_record.alma_xml
+        # TODO: Return the actual record created.
+        return self._call_post_api(api, data, parameters, format="xml")
+
+    def update_holding_record(
+        self,
+        bib_id: str,
+        holding_record: HoldingRecord,
+        parameters: dict | None = None,
+    ) -> dict:
+        if parameters is None:
+            parameters = {}
+        holding_id = holding_record.holding_id
+        api = f"/almaws/v1/bibs/{bib_id}/holdings/{holding_id}"
+        data = holding_record.alma_xml
+        # TODO: Return the actual record updated.
+        return self._call_put_api(api, data, format="xml")
+
+    def delete_holding_record(
+        self, bib_id: str, holding_id: str, parameters: dict | None = None
+    ) -> dict:
+        if parameters is None:
+            parameters = {}
+        api = f"/almaws/v1/bibs/{bib_id}/holdings/{holding_id}"
+        return self._call_delete_api(api, parameters)
