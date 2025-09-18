@@ -482,7 +482,7 @@ class AlmaAPIClient:
         # as well as response status.
         # Will require updating all client methods.
         # For now, this is isolated to the new record retrieval methods.
-        if api_data.get("api_response", {}).get("status_code", "") != "200":
+        if api_data.get("api_response", {}).get("status_code", "") != 200:
             raise ValueError(f"Unable to get MARC record for {api}")
         else:
             return api_data
