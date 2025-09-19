@@ -1,6 +1,7 @@
 import requests
+from requests.structures import CaseInsensitiveDict
 from time import sleep
-from typing import Union, TypeAlias
+from typing import Any, Union, TypeAlias
 
 # TODO: Once 3.13 is supported, update this.
 # from warnings import deprecated # Python 3.13+
@@ -22,38 +23,85 @@ from .models.marc_records import (
 Data: TypeAlias = Union[bytes, dict, list[tuple]]  # Python 3.11
 
 
+class APIResponse:
+    def __init__(self, response: requests.Response, data_format: str = "json") -> None:
+        self._response = response
+        try:
+            if data_format == "json":
+                self.api_data: dict = response.json()
+            else:
+                self.api_data = {"content": response.content}
+        except requests.exceptions.JSONDecodeError:
+            # Some responses return nothing, which can't be decoded...
+            self.api_data = {}
+
+    def __getattr__(self, attribute_name) -> Any:
+        """
+        Convenience method for response attributes not explicitly
+        exposed via properties.
+
+        :param attribute_name: The attribute name.
+        :return: The attribute value from the response object, if found.
+        :raises: `AttributeErrror`, if `response.attribute_name` not found.
+        """
+        try:
+            return getattr(self._response, attribute_name)
+        except AttributeError:
+            raise AttributeError(f"{attribute_name} not found.")
+
+    @property
+    def content(self) -> bytes:
+        return self._response.content
+
+    @property
+    def headers(self) -> CaseInsensitiveDict:
+        return self._response.headers
+
+    @property
+    def status_code(self) -> int:
+        return self._response.status_code
+
+    def json(self, **kwargs) -> Any:
+        return self._response.json(**kwargs)
+
+    def raise_for_status(self) -> None:
+        self._response.raise_for_status()
+
+
 class AlmaAPIClient:
     def __init__(self, api_key: str) -> None:
         self.API_KEY = api_key
         self.BASE_URL = "https://api-na.hosted.exlibrisgroup.com"
 
-    def _get_headers(self, format: str = "json") -> dict:
+    def _get_headers(self, data_format: str = "json") -> dict:
         """Generate the HTTP headers needed for all API requests, to be sure responses
-        are in the requested format.
+        are in the requested data_format.
 
-        :param format: The desired format, expected to be json or xml.
+        :param data_format: The desired format, expected to be json or xml.
         :return: The relevant HTTP headers.
         """
         # TODO: Enforce valid formats.
         return {
             "Authorization": f"apikey {self.API_KEY}",
-            "Accept": f"application/{format}",
-            "Content-Type": f"application/{format}",
+            "Accept": f"application/{data_format}",
+            "Content-Type": f"application/{data_format}",
         }
 
-    def _get_api_data(self, response: requests.Response, format: str = "json") -> dict:
+    def _get_api_data(
+        self, response: requests.Response, data_format: str = "json"
+    ) -> dict:
         """Return dictionary with response content and selected response headers.
 
-        If format is not json, the (presumably) XML content is in api_data["content"],
+        If data_format is not json, the (presumably) XML content is in api_data["content"],
         as a byte array.
 
         :param response: An HTTP response returned by the API.
-        :param format: The desired format, expected to be json or xml.
+        :param data_format: The desired format, expected to be json or xml.
         :return api_data: Response content and selected headers.
         """
         # TODO: Enforce valid formats.
         try:
-            if format == "json":
+            if data_format == "json":
                 api_data: dict = response.json()
             else:
                 api_data = {"content": response.content}
@@ -68,6 +116,51 @@ class AlmaAPIClient:
         }
         return api_data
 
+    def _call_api(
+        self,
+        method: str,
+        api: str,
+        data: Data | None = None,
+        parameters: dict | None = None,
+        data_format: str = "json",
+    ) -> APIResponse:
+        if method not in ["delete", "get", "post", "put"]:
+            raise ValueError(f"Unsupported method: {method}")
+
+        # requests.request takes optional data and json parameters,
+        # but only one should be supplied.  Figure that out here, instead
+        # of having two full calls varying only in one parameter.
+        if data_format == "json":
+            data_params = {"json": data}
+        elif data_format == "xml":
+            data_params = {"data": data}
+        else:
+            raise ValueError(f"Unsupported format: {data_format}")
+
+        api_url = self._get_api_url(api)
+        headers = self._get_headers(data_format)
+        if parameters is None:
+            parameters = {}
+
+        # pylance does not like **data_params, since requests.request()
+        # does not take **kwargs.
+        response = requests.request(
+            method=method,
+            url=api_url,
+            headers=headers,
+            params=parameters,
+            **data_params,  # type: ignore
+        )
+
+        return APIResponse(response)
+
+    def _call_get_api_TMP(
+        self, api: str, parameters: dict | None = None, data_format: str = "json"
+    ) -> APIResponse:
+        return self._call_api(
+            method="get", api=api, parameters=parameters, data_format=data_format
+        )
+
     def _get_api_url(self, api: str) -> str:
         """Get the full URL needed to call the API.  The base URL is aadded,
         if the provided `api` does not already start with it.
@@ -81,41 +174,45 @@ class AlmaAPIClient:
             return self.BASE_URL + api
 
     def _call_get_api(
-        self, api: str, parameters: dict | None = None, format: str = "json"
+        self, api: str, parameters: dict | None = None, data_format: str = "json"
     ) -> dict:
         """Send a GET request to the API.
 
         :param api: The API to call, with or without the base URL.
         :param parameters: The optional request parameters.
-        :param format: The desired format, expected to be json or xml.
+        :param data_format: The desired format, expected to be json or xml.
         :return api_data: Response content and selected headers.
         """
         if parameters is None:
             parameters = {}
         api_url = self._get_api_url(api)
-        headers = self._get_headers(format)
+        headers = self._get_headers(data_format)
         response = requests.get(api_url, headers=headers, params=parameters)
-        api_data: dict = self._get_api_data(response, format)
+        api_data: dict = self._get_api_data(response, data_format)
         return api_data
 
     def _call_post_api(
-        self, api: str, data: Data, parameters: dict | None = None, format: str = "json"
+        self,
+        api: str,
+        data: Data,
+        parameters: dict | None = None,
+        data_format: str = "json",
     ) -> dict:
         """Send a POST request to the API.
 
         :param api: The API to call, with or without the base URL.
         :param data: The data to send in the body of the request.
         :param parameters: The optional request parameters.
-        :param format: The desired format, expected to be json or xml.
+        :param data_format: The desired format, expected to be json or xml.
         :return api_data: Response content and selected headers.
         """
         if parameters is None:
             parameters = {}
         api_url = self._get_api_url(api)
-        headers = self._get_headers(format)
+        headers = self._get_headers(data_format)
         # Handle both XML (required by MARC methods) and default JSON.
         # TODO: Enforce valid formats.
-        if format == "xml":
+        if data_format == "xml":
             response = requests.post(
                 api_url, headers=headers, data=data, params=parameters
             )
@@ -123,27 +220,31 @@ class AlmaAPIClient:
             response = requests.post(
                 api_url, headers=headers, json=data, params=parameters
             )
-        api_data: dict = self._get_api_data(response, format)
+        api_data: dict = self._get_api_data(response, data_format)
         return api_data
 
     def _call_put_api(
-        self, api: str, data: Data, parameters: dict | None = None, format: str = "json"
+        self,
+        api: str,
+        data: Data,
+        parameters: dict | None = None,
+        data_format: str = "json",
     ) -> dict:
         """Send a PUT request to the API.
 
         :param api: The API to call, with or without the base URL.
         :param data: The data to send in the body of the request.
         :param parameters: The optional request parameters.
-        :param format: The desired format, expected to be json or xml.
+        :param data_format: The desired format, expected to be json or xml.
         :return api_data: Response content and selected headers.
         """
         if parameters is None:
             parameters = {}
-        headers = self._get_headers(format)
+        headers = self._get_headers(data_format)
         api_url = self._get_api_url(api)
         # Handle both XML (required by update_bib) and default JSON
         # TODO: Enforce valid formats.
-        if format == "xml":
+        if data_format == "xml":
             response = requests.put(
                 api_url, headers=headers, data=data, params=parameters
             )
@@ -152,23 +253,23 @@ class AlmaAPIClient:
             response = requests.put(
                 api_url, headers=headers, json=data, params=parameters
             )
-        api_data: dict = self._get_api_data(response, format)
+        api_data: dict = self._get_api_data(response, data_format)
         return api_data
 
     def _call_delete_api(
-        self, api: str, parameters: dict | None = None, format: str = "json"
+        self, api: str, parameters: dict | None = None, data_format: str = "json"
     ) -> dict:
         """Send a DELETE request to the API.
 
         :param api: The API to call, with or without the base URL.
         :param parameters: The optional request parameters.
-        :param format: The desired format, expected to be json or xml.
+        :param data_format: The desired format, expected to be json or xml.
         :return api_data: Response content and selected headers.
         """
         if parameters is None:
             parameters = {}
         api_url = self._get_api_url(api)
-        headers = self._get_headers(format)
+        headers = self._get_headers(data_format)
         response = requests.delete(api_url, headers=headers, params=parameters)
         # Success is HTTP 204, "No Content"
         if response.status_code != 204:
@@ -178,7 +279,7 @@ class AlmaAPIClient:
             print(response.headers)
             print(response.text)
             # exit(1)
-        api_data: dict = self._get_api_data(response, format)
+        api_data: dict = self._get_api_data(response, data_format)
         return api_data
 
     def create_item(
@@ -294,7 +395,7 @@ class AlmaAPIClient:
         if parameters is None:
             parameters = {}
         api = f"/almaws/v1/bibs/{mms_id}"
-        return self._call_get_api(api, parameters, format="xml")
+        return self._call_get_api(api, parameters, data_format="xml")
 
     @deprecated("Use update_bib_record() instead.")
     def update_bib(
@@ -303,7 +404,7 @@ class AlmaAPIClient:
         if parameters is None:
             parameters = {}
         api = f"/almaws/v1/bibs/{mms_id}"
-        return self._call_put_api(api, data, parameters, format="xml")
+        return self._call_put_api(api, data, parameters, data_format="xml")
 
     @deprecated("Use get_holding_record() instead")
     def get_holding(
@@ -315,7 +416,7 @@ class AlmaAPIClient:
         if parameters is None:
             parameters = {}
         api = f"/almaws/v1/bibs/{mms_id}/holdings/{holding_id}"
-        return self._call_get_api(api, parameters, format="xml")
+        return self._call_get_api(api, parameters, data_format="xml")
 
     @deprecated("Use get_holding_record() instead.")
     def update_holding(
@@ -324,7 +425,7 @@ class AlmaAPIClient:
         if parameters is None:
             parameters = {}
         api = f"/almaws/v1/bibs/{mms_id}/holdings/{holding_id}"
-        return self._call_put_api(api, data, format="xml")
+        return self._call_put_api(api, data, data_format="xml")
 
     def get_set_members(self, set_id: str, parameters: dict | None = None) -> dict:
         if parameters is None:
@@ -476,7 +577,7 @@ class AlmaAPIClient:
     ) -> dict:
         if parameters is None:
             parameters = {}
-        api_data = self._call_get_api(api, parameters, format="xml")
+        api_data = self._call_get_api(api, parameters, data_format="xml")
         # TODO: Change _get_api_data() to return an object which exposes attributes
         # in a more friendly way. This could involve parsing XML for error messages & codes,
         # as well as response status.
@@ -538,7 +639,7 @@ class AlmaAPIClient:
         api = "/almaws/v1/bibs"
         data = bib_record.alma_xml
         # TODO: Return the actual record created.
-        return self._call_post_api(api, data, parameters, format="xml")
+        return self._call_post_api(api, data, parameters, data_format="xml")
 
     def update_bib_record(
         self, bib_id: str, bib_record: BibRecord, parameters: dict | None = None
@@ -548,7 +649,7 @@ class AlmaAPIClient:
         api = f"/almaws/v1/bibs/{bib_id}"
         data = bib_record.alma_xml
         # TODO: Return the actual record updated.
-        return self._call_put_api(api, data, parameters, format="xml")
+        return self._call_put_api(api, data, parameters, data_format="xml")
 
     def delete_bib_record(self, bib_id: str, parameters: dict | None = None) -> dict:
         if parameters is None:
@@ -564,7 +665,7 @@ class AlmaAPIClient:
         api = f"/almaws/v1/bibs/{bib_id}/holdings"
         data = holding_record.alma_xml
         # TODO: Return the actual record created.
-        return self._call_post_api(api, data, parameters, format="xml")
+        return self._call_post_api(api, data, parameters, data_format="xml")
 
     def update_holding_record(
         self,
@@ -578,7 +679,7 @@ class AlmaAPIClient:
         api = f"/almaws/v1/bibs/{bib_id}/holdings/{holding_id}"
         data = holding_record.alma_xml
         # TODO: Return the actual record updated.
-        return self._call_put_api(api, data, format="xml")
+        return self._call_put_api(api, data, data_format="xml")
 
     def delete_holding_record(
         self, bib_id: str, holding_id: str, parameters: dict | None = None
