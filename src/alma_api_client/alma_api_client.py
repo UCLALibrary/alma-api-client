@@ -1,12 +1,11 @@
 import requests
-from requests.structures import CaseInsensitiveDict
 from time import sleep
-from typing import Any, Union, TypeAlias
+from typing import Union, TypeAlias
 
 # TODO: Once 3.13 is supported, update this.
 # from warnings import deprecated # Python 3.13+
 from typing_extensions import deprecated  # Python 3.11
-
+from .models.api import APIResponse
 from .models.sets import Set, SetMember
 from .models.marc_records import (
     AuthorityRecord,
@@ -21,51 +20,6 @@ from .models.marc_records import (
 # TODO: Once 3.13 is supported, update this:
 # type Data = Union[bytes, dict, list[tuple]] # Python 3.12+
 Data: TypeAlias = Union[bytes, dict, list[tuple]]  # Python 3.11
-
-
-class APIResponse:
-    def __init__(self, response: requests.Response, data_format: str = "json") -> None:
-        self._response = response
-        try:
-            if data_format == "json":
-                self.api_data: dict = response.json()
-            else:
-                self.api_data = {"content": response.content}
-        except requests.exceptions.JSONDecodeError:
-            # Some responses return nothing, which can't be decoded...
-            self.api_data = {}
-
-    def __getattr__(self, attribute_name) -> Any:
-        """
-        Convenience method for response attributes not explicitly
-        exposed via properties.
-
-        :param attribute_name: The attribute name.
-        :return: The attribute value from the response object, if found.
-        :raises: `AttributeErrror`, if `response.attribute_name` not found.
-        """
-        try:
-            return getattr(self._response, attribute_name)
-        except AttributeError:
-            raise AttributeError(f"{attribute_name} not found.")
-
-    @property
-    def content(self) -> bytes:
-        return self._response.content
-
-    @property
-    def headers(self) -> CaseInsensitiveDict:
-        return self._response.headers
-
-    @property
-    def status_code(self) -> int:
-        return self._response.status_code
-
-    def json(self, **kwargs) -> Any:
-        return self._response.json(**kwargs)
-
-    def raise_for_status(self) -> None:
-        self._response.raise_for_status()
 
 
 class AlmaAPIClient:
@@ -152,7 +106,7 @@ class AlmaAPIClient:
             **data_params,  # type: ignore
         )
 
-        return APIResponse(response)
+        return APIResponse(response, data_format=data_format)
 
     def _call_get_api_TMP(
         self, api: str, parameters: dict | None = None, data_format: str = "json"
@@ -574,19 +528,12 @@ class AlmaAPIClient:
         self,
         api: str,
         parameters: dict | None = None,
-    ) -> dict:
-        if parameters is None:
-            parameters = {}
-        api_data = self._call_get_api(api, parameters, data_format="xml")
-        # TODO: Change _get_api_data() to return an object which exposes attributes
-        # in a more friendly way. This could involve parsing XML for error messages & codes,
-        # as well as response status.
-        # Will require updating all client methods.
-        # For now, this is isolated to the new record retrieval methods.
-        if api_data.get("api_response", {}).get("status_code", "") != 200:
-            raise ValueError(f"Unable to get MARC record for {api}")
-        else:
-            return api_data
+    ) -> APIResponse:
+        api_response = self._call_api(
+            method="get", api=api, parameters=parameters, data_format="xml"
+        )
+        api_response.raise_for_status()
+        return api_response
 
     def get_authority_record(
         self, authority_id: str, parameters: dict | None = None
