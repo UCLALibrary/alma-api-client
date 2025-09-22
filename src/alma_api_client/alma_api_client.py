@@ -138,6 +138,7 @@ class AlmaAPIClient:
         api_data: dict = self._get_api_data(response, data_format)
         return api_data
 
+    @deprecated("Will be removed when deprecated MARC update methods are removed.")
     def _call_put_api(
         self,
         api: str,
@@ -351,12 +352,15 @@ class AlmaAPIClient:
         return self._call_get_api(api, parameters)
 
     def update_user(
-        self, user_id: str, user: dict, parameters: dict | None = None
-    ) -> dict:
+        self, user_id: str, data: dict, parameters: dict | None = None
+    ) -> APIResponse:
         if parameters is None:
             parameters = {}
         api = f"/almaws/v1/users/{user_id}"
-        return self._call_put_api(api, user, parameters)
+        api_response = self._call_api(
+            method="put", api=api, data=data, parameters=parameters
+        )
+        return api_response
 
     def get_general_configuration(self) -> dict:
         """Return general configuration info.
@@ -427,13 +431,16 @@ class AlmaAPIClient:
         return self._call_get_api(api, parameters)
 
     def update_fund(
-        self, fund_id: str, fund: dict, parameters: dict | None = None
-    ) -> dict:
+        self, fund_id: str, data: dict, parameters: dict | None = None
+    ) -> APIResponse:
         """Update a specific fund."""
         if parameters is None:
             parameters = {}
         api = f"/almaws/v1/acq/funds/{fund_id}"
-        return self._call_put_api(api, fund, parameters)
+        api_response = self._call_api(
+            method="put", api=api, data=data, parameters=parameters
+        )
+        return api_response
 
     # New / experimental code below.
     def get_set(self, set_id: str, get_all_members: bool = True) -> Set:
