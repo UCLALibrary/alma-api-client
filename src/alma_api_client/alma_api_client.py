@@ -171,32 +171,6 @@ class AlmaAPIClient:
         api_data: dict = self._get_api_data(response, data_format)
         return api_data
 
-    def _call_delete_api(
-        self, api: str, parameters: dict | None = None, data_format: str = "json"
-    ) -> dict:
-        """Send a DELETE request to the API.
-
-        :param api: The API to call, with or without the base URL.
-        :param parameters: The optional request parameters.
-        :param data_format: The desired format, expected to be json or xml.
-        :return api_data: Response content and selected headers.
-        """
-        if parameters is None:
-            parameters = {}
-        api_url = self._get_api_url(api)
-        headers = self._get_headers(data_format)
-        response = requests.delete(api_url, headers=headers, params=parameters)
-        # Success is HTTP 204, "No Content"
-        if response.status_code != 204:
-            # TODO: Real error handling
-            print(api_url)
-            print(response.status_code)
-            print(response.headers)
-            print(response.text)
-            # exit(1)
-        api_data: dict = self._get_api_data(response, data_format)
-        return api_data
-
     def create_item(
         self, bib_id: str, holding_id: str, data: dict, parameters: dict | None = None
     ) -> APIResponse:
@@ -363,11 +337,12 @@ class AlmaAPIClient:
         )
         return api_response
 
-    def delete_user(self, user_id: str, parameters: dict | None = None) -> dict:
+    def delete_user(self, user_id: str, parameters: dict | None = None) -> APIResponse:
         if parameters is None:
             parameters = {}
         api = f"/almaws/v1/users/{user_id}"
-        return self._call_delete_api(api, parameters)
+        api_response = self._call_api(method="delete", api=api, parameters=parameters)
+        return api_response
 
     def get_user(self, user_id: str, parameters: dict | None = None) -> dict:
         if parameters is None:
