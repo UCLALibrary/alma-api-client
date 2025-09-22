@@ -472,7 +472,6 @@ class AlmaAPIClient:
         )
         return api_response
 
-    # New / experimental code below.
     def get_set(self, set_id: str, get_all_members: bool = True) -> Set:
         """Retrieve data for a specific set.
 
@@ -481,7 +480,7 @@ class AlmaAPIClient:
         :return alma_set: An alma_api_client.models.Set object.
         """
         api = f"/almaws/v1/conf/sets/{set_id}"
-        api_response = self._call_get_api(api)
+        api_response = self._call_api(method="get", api=api)
         alma_set = Set(api_response=api_response)
 
         members = []
@@ -490,14 +489,15 @@ class AlmaAPIClient:
             offset = 0
             limit = 100
             while len(members) < alma_set.number_of_members:
-                data = self._call_get_api(
+                api_response = self._call_api(
+                    method="get",
                     api=alma_set.members_api,
                     parameters={"offset": offset, "limit": limit},
                 )
-                new_members = data.get("member", [])
+                new_members = api_response.api_data.get("member", [])
                 offset += len(new_members)
                 for new_member in new_members:
-                    members.append(SetMember(api_response=new_member))
+                    members.append(SetMember(member_data=new_member))
 
         alma_set.add_members(members)
         return alma_set
