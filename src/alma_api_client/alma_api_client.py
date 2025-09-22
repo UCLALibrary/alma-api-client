@@ -108,13 +108,6 @@ class AlmaAPIClient:
 
         return APIResponse(response, data_format=data_format)
 
-    def _call_get_api_TMP(
-        self, api: str, parameters: dict | None = None, data_format: str = "json"
-    ) -> APIResponse:
-        return self._call_api(
-            method="get", api=api, parameters=parameters, data_format=data_format
-        )
-
     def _get_api_url(self, api: str) -> str:
         """Get the full URL needed to call the API.  The base URL is aadded,
         if the provided `api` does not already start with it.
@@ -580,58 +573,70 @@ class AlmaAPIClient:
 
     def create_bib_record(
         self, bib_record: BibRecord, parameters: dict | None = None
-    ) -> dict:
+    ) -> BibRecord:
         if parameters is None:
             parameters = {}
         api = "/almaws/v1/bibs"
         data = bib_record.alma_xml
-        # TODO: Return the actual record created.
-        return self._call_post_api(api, data, parameters, data_format="xml")
+        api_response = self._call_api(
+            method="post", api=api, data=data, parameters=parameters, data_format="xml"
+        )
+        return BibRecord(api_response)
 
     def update_bib_record(
         self, bib_id: str, bib_record: BibRecord, parameters: dict | None = None
-    ) -> dict:
+    ) -> BibRecord:
         if parameters is None:
             parameters = {}
         api = f"/almaws/v1/bibs/{bib_id}"
         data = bib_record.alma_xml
-        # TODO: Return the actual record updated.
-        return self._call_put_api(api, data, parameters, data_format="xml")
+        api_response = self._call_api(
+            method="put", api=api, data=data, parameters=parameters, data_format="xml"
+        )
+        return BibRecord(api_response)
 
-    def delete_bib_record(self, bib_id: str, parameters: dict | None = None) -> dict:
+    def delete_bib_record(
+        self, bib_id: str, parameters: dict | None = None
+    ) -> APIResponse:
         if parameters is None:
             parameters = {}
         api = f"/almaws/v1/bibs/{bib_id}"
-        return self._call_delete_api(api, parameters)
+        api_response = self._call_api(method="delete", api=api, parameters=parameters)
+        return api_response
 
     def create_holding_record(
         self, bib_id: str, holding_record: HoldingRecord, parameters: dict | None = None
-    ) -> dict:
+    ) -> HoldingRecord:
         if parameters is None:
             parameters = {}
         api = f"/almaws/v1/bibs/{bib_id}/holdings"
         data = holding_record.alma_xml
-        # TODO: Return the actual record created.
-        return self._call_post_api(api, data, parameters, data_format="xml")
+        api_response = self._call_api(
+            method="post", api=api, data=data, parameters=parameters, data_format="xml"
+        )
+        return HoldingRecord(api_response)
 
     def update_holding_record(
         self,
         bib_id: str,
         holding_record: HoldingRecord,
         parameters: dict | None = None,
-    ) -> dict:
+    ) -> HoldingRecord:
         if parameters is None:
             parameters = {}
         holding_id = holding_record.holding_id
         api = f"/almaws/v1/bibs/{bib_id}/holdings/{holding_id}"
         data = holding_record.alma_xml
-        # TODO: Return the actual record updated.
-        return self._call_put_api(api, data, data_format="xml")
+        api_response = self._call_api(
+            method="put", api=api, data=data, parameters=parameters, data_format="xml"
+        )
+        return HoldingRecord(api_response)
 
     def delete_holding_record(
         self, bib_id: str, holding_id: str, parameters: dict | None = None
-    ) -> dict:
+    ) -> APIResponse:
         if parameters is None:
             parameters = {}
         api = f"/almaws/v1/bibs/{bib_id}/holdings/{holding_id}"
-        return self._call_delete_api(api, parameters)
+        api_response = self._call_api(method="delete", api=api, parameters=parameters)
+        return api_response
