@@ -138,38 +138,6 @@ class AlmaAPIClient:
         api_data: dict = self._get_api_data(response, data_format)
         return api_data
 
-    def _call_post_api(
-        self,
-        api: str,
-        data: Data,
-        parameters: dict | None = None,
-        data_format: str = "json",
-    ) -> dict:
-        """Send a POST request to the API.
-
-        :param api: The API to call, with or without the base URL.
-        :param data: The data to send in the body of the request.
-        :param parameters: The optional request parameters.
-        :param data_format: The desired format, expected to be json or xml.
-        :return api_data: Response content and selected headers.
-        """
-        if parameters is None:
-            parameters = {}
-        api_url = self._get_api_url(api)
-        headers = self._get_headers(data_format)
-        # Handle both XML (required by MARC methods) and default JSON.
-        # TODO: Enforce valid formats.
-        if data_format == "xml":
-            response = requests.post(
-                api_url, headers=headers, data=data, params=parameters
-            )
-        else:
-            response = requests.post(
-                api_url, headers=headers, json=data, params=parameters
-            )
-        api_data: dict = self._get_api_data(response, data_format)
-        return api_data
-
     def _call_put_api(
         self,
         api: str,
@@ -231,11 +199,14 @@ class AlmaAPIClient:
 
     def create_item(
         self, bib_id: str, holding_id: str, data: dict, parameters: dict | None = None
-    ) -> dict:
+    ) -> APIResponse:
         if parameters is None:
             parameters = {}
         api = f"/almaws/v1/bibs/{bib_id}/holdings/{holding_id}/items"
-        return self._call_post_api(api, data, parameters)
+        api_response = self._call_api(
+            method="post", api=api, data=data, parameters=parameters
+        )
+        return api_response
 
     def get_items(
         self, bib_id: str, holding_id: str, parameters: dict | None = None
@@ -263,7 +234,7 @@ class AlmaAPIClient:
 
     def run_job(
         self, job_id, data: dict | None = None, parameters: dict | None = None
-    ) -> dict:
+    ) -> APIResponse:
         # Tells Alma to queue / run a job; does *not* wait for completion.
         # Caller must provide job_id outside of parameters.
         # Running a scheduled job requires empty data {}; not sure about other jobs
@@ -272,7 +243,10 @@ class AlmaAPIClient:
         if parameters is None:
             parameters = {}
         api = f"/almaws/v1/conf/jobs/{job_id}"
-        return self._call_post_api(api, data, parameters)
+        api_response = self._call_api(
+            method="post", api=api, data=data, parameters=parameters
+        )
+        return api_response
 
     def wait_for_completion(
         self, job_id: str, instance_id: str, seconds_to_poll: int = 15
@@ -380,11 +354,14 @@ class AlmaAPIClient:
         api = f"/almaws/v1/conf/sets/{set_id}/members"
         return self._call_get_api(api, parameters)
 
-    def create_user(self, user: dict, parameters: dict | None = None) -> dict:
+    def create_user(self, data: dict, parameters: dict | None = None) -> APIResponse:
         if parameters is None:
             parameters = {}
         api = "/almaws/v1/users"
-        return self._call_post_api(api, user, parameters)
+        api_response = self._call_api(
+            method="post", api=api, data=data, parameters=parameters
+        )
+        return api_response
 
     def delete_user(self, user_id: str, parameters: dict | None = None) -> dict:
         if parameters is None:
