@@ -120,6 +120,7 @@ class AlmaAPIClient:
         else:
             return self.BASE_URL + api
 
+    @deprecated("Will be removed when deprecated MARC get methods are removed.")
     def _call_get_api(
         self, api: str, parameters: dict | None = None, data_format: str = "json"
     ) -> dict:
@@ -185,27 +186,30 @@ class AlmaAPIClient:
 
     def get_items(
         self, bib_id: str, holding_id: str, parameters: dict | None = None
-    ) -> dict:
+    ) -> APIResponse:
         if parameters is None:
             parameters = {}
         api = f"/almaws/v1/bibs/{bib_id}/holdings/{holding_id}/items"
-        return self._call_get_api(api, parameters)
+        api_response = self._call_api(method="get", api=api, parameters=parameters)
+        return api_response
 
-    def get_integration_profiles(self, parameters: dict | None = None) -> dict:
+    def get_integration_profiles(self, parameters: dict | None = None) -> APIResponse:
         # Caller can pass search parameters, but must deal with possible
         # multiple matches.
         if parameters is None:
             parameters = {}
         api = "/almaws/v1/conf/integration-profiles"
-        return self._call_get_api(api, parameters)
+        api_response = self._call_api(method="get", api=api, parameters=parameters)
+        return api_response
 
-    def get_jobs(self, parameters: dict | None = None) -> dict:
+    def get_jobs(self, parameters: dict | None = None) -> APIResponse:
         # Caller normally will pass parameters, but they're not required.
         # Caller must deal with possible multiple matches.
         if parameters is None:
             parameters = {}
         api = "/almaws/v1/conf/jobs"
-        return self._call_get_api(api, parameters)
+        api_response = self._call_api(method="get", api=api, parameters=parameters)
+        return api_response
 
     def run_job(
         self, job_id, data: dict | None = None, parameters: dict | None = None
@@ -245,43 +249,53 @@ class AlmaAPIClient:
             "RUNNING",
             "FINALIZING",
         ]:
+            # TODO: Replace this with _call_api()
             instance = self._call_get_api(api)
             status = instance["status"]["value"]
             print(status)
             sleep(seconds_to_poll)
         return instance
 
-    def get_fees(self, user_id: str, parameters: dict | None = None) -> dict:
+    def get_fees(self, user_id: str, parameters: dict | None = None) -> APIResponse:
         if parameters is None:
             parameters = {}
         api = f"/almaws/v1/users/{user_id}/fees"
-        return self._call_get_api(api, parameters)
+        api_response = self._call_api(method="get", api=api, parameters=parameters)
+        return api_response
 
-    def get_analytics_report(self, parameters: dict | None = None) -> dict:
+    def get_analytics_report(self, parameters: dict | None = None) -> APIResponse:
         # Docs say to URL-encode report name (path);
         # request lib is doing it automatically.
         if parameters is None:
             parameters = {}
         api = "/almaws/v1/analytics/reports"
-        return self._call_get_api(api, parameters)
+        api_response = self._call_api(method="get", api=api, parameters=parameters)
+        return api_response
 
-    def get_analytics_path(self, path: str, parameters: dict | None = None) -> dict:
+    def get_analytics_path(
+        self, path: str, parameters: dict | None = None
+    ) -> APIResponse:
         if parameters is None:
             parameters = {}
         api = f"/almaws/v1/analytics/paths/{path}"
-        return self._call_get_api(api, parameters)
+        api_response = self._call_api(method="get", api=api, parameters=parameters)
+        return api_response
 
-    def get_vendors(self, parameters: dict | None = None) -> dict:
+    def get_vendors(self, parameters: dict | None = None) -> APIResponse:
         if parameters is None:
             parameters = {}
         api = "/almaws/v1/acq/vendors"
-        return self._call_get_api(api, parameters)
+        api_response = self._call_api(method="get", api=api, parameters=parameters)
+        return api_response
 
-    def get_vendor(self, vendor_code: str, parameters: dict | None = None) -> dict:
+    def get_vendor(
+        self, vendor_code: str, parameters: dict | None = None
+    ) -> APIResponse:
         if parameters is None:
             parameters = {}
         api = f"/almaws/v1/acq/vendors/{vendor_code}"
-        return self._call_get_api(api, parameters)
+        api_response = self._call_api(method="get", api=api, parameters=parameters)
+        return api_response
 
     @deprecated("Use get_bib_record() instead.")
     def get_bib(self, mms_id: str, parameters: dict | None = None) -> dict:
@@ -323,11 +337,14 @@ class AlmaAPIClient:
         api = f"/almaws/v1/bibs/{mms_id}/holdings/{holding_id}"
         return self._call_put_api(api, data, data_format="xml")
 
-    def get_set_members(self, set_id: str, parameters: dict | None = None) -> dict:
+    def get_set_members(
+        self, set_id: str, parameters: dict | None = None
+    ) -> APIResponse:
         if parameters is None:
             parameters = {}
         api = f"/almaws/v1/conf/sets/{set_id}/members"
-        return self._call_get_api(api, parameters)
+        api_response = self._call_api(method="get", api=api, parameters=parameters)
+        return api_response
 
     def create_user(self, data: dict, parameters: dict | None = None) -> APIResponse:
         if parameters is None:
@@ -345,11 +362,12 @@ class AlmaAPIClient:
         api_response = self._call_api(method="delete", api=api, parameters=parameters)
         return api_response
 
-    def get_user(self, user_id: str, parameters: dict | None = None) -> dict:
+    def get_user(self, user_id: str, parameters: dict | None = None) -> APIResponse:
         if parameters is None:
             parameters = {}
         api = f"/almaws/v1/users/{user_id}"
-        return self._call_get_api(api, parameters)
+        api_response = self._call_api(method="get", api=api, parameters=parameters)
+        return api_response
 
     def update_user(
         self, user_id: str, data: dict, parameters: dict | None = None
@@ -362,73 +380,85 @@ class AlmaAPIClient:
         )
         return api_response
 
-    def get_general_configuration(self) -> dict:
+    def get_general_configuration(self) -> APIResponse:
         """Return general configuration info.
         Useful for checking production / sandbox via environment_type.
         """
         api = "/almaws/v1/conf/general"
-        return self._call_get_api(api)
+        api_response = self._call_api(method="get", api=api)
+        return api_response
 
-    def get_code_tables(self) -> dict:
+    def get_code_tables(self) -> APIResponse:
         """Return list of code tables.  This specific API is undocumented."""
         api = "/almaws/v1/conf/code-tables"
-        return self._call_get_api(api)
+        api_response = self._call_api(method="get", api=api)
+        return api_response
 
-    def get_code_table(self, code_table: str, parameters: dict | None = None) -> dict:
+    def get_code_table(
+        self, code_table: str, parameters: dict | None = None
+    ) -> APIResponse:
         """Return specific code table, via name from get_code_tables()."""
         if parameters is None:
             parameters = {}
         api = f"/almaws/v1/conf/code-tables/{code_table}"
-        return self._call_get_api(api, parameters)
+        api_response = self._call_api(method="get", api=api, parameters=parameters)
+        return api_response
 
-    def get_mapping_tables(self) -> dict:
+    def get_mapping_tables(self) -> APIResponse:
         """Return list of mapping tables.  This specific API is undocumented."""
         api = "/almaws/v1/conf/mapping-tables"
-        return self._call_get_api(api)
+        api_response = self._call_api(method="get", api=api)
+        return api_response
 
     def get_mapping_table(
         self, mapping_table: str, parameters: dict | None = None
-    ) -> dict:
+    ) -> APIResponse:
         """Return specific mapping table, via name from get_mapping_tables()."""
         if parameters is None:
             parameters = {}
         api = f"/almaws/v1/conf/code-tables/{mapping_table}"
-        return self._call_get_api(api, parameters)
+        api_response = self._call_api(method="get", api=api, parameters=parameters)
+        return api_response
 
-    def get_libraries(self) -> dict:
+    def get_libraries(self) -> APIResponse:
         """Return all libraries."""
         api = "/almaws/v1/conf/libraries"
-        return self._call_get_api(api)
+        api_response = self._call_api(method="get", api=api)
+        return api_response
 
-    def get_library(self, library_code: str) -> dict:
+    def get_library(self, library_code: str) -> APIResponse:
         """Return data for a single library, via code.
         Doesn't provide more details than each entry in get_libaries().
         """
         api = f"/almaws/v1/conf/libraries/{library_code}"
-        return self._call_get_api(api)
+        api_response = self._call_api(method="get", api=api)
+        return api_response
 
     def get_circulation_desks(
         self, library_code: str, parameters: dict | None = None
-    ) -> dict:
+    ) -> APIResponse:
         """Return data about circ desks in a single library, via code."""
         if parameters is None:
             parameters = {}
         api = f"/almaws/v1/conf/libraries/{library_code}/circ-desks/"
-        return self._call_get_api(api, parameters)
+        api_response = self._call_api(method="get", api=api, parameters=parameters)
+        return api_response
 
-    def get_funds(self, parameters: dict | None = None) -> dict:
+    def get_funds(self, parameters: dict | None = None) -> APIResponse:
         """Return data about all funds matching search in parameters."""
         if parameters is None:
             parameters = {}
         api = "/almaws/v1/acq/funds"
-        return self._call_get_api(api, parameters)
+        api_response = self._call_api(method="get", api=api, parameters=parameters)
+        return api_response
 
-    def get_fund(self, fund_id: str, parameters: dict | None = None) -> dict:
+    def get_fund(self, fund_id: str, parameters: dict | None = None) -> APIResponse:
         """Return data about a specific fund."""
         if parameters is None:
             parameters = {}
         api = f"/almaws/v1/acq/funds/{fund_id}"
-        return self._call_get_api(api, parameters)
+        api_response = self._call_api(method="get", api=api, parameters=parameters)
+        return api_response
 
     def update_fund(
         self, fund_id: str, data: dict, parameters: dict | None = None
