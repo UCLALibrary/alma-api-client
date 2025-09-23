@@ -38,35 +38,6 @@ class AlmaAPIClient:
             "Content-Type": f"application/{data_format}",
         }
 
-    def _get_api_data(
-        self, response: requests.Response, data_format: str = "json"
-    ) -> dict:
-        """Return dictionary with response content and selected response headers.
-
-        If data_format is not json, the (presumably) XML content is in api_data["content"],
-        as a byte array.
-
-        :param response: An HTTP response returned by the API.
-        :param data_format: The desired format, expected to be json or xml.
-        :return api_data: Response content and selected headers.
-        """
-        # TODO: Enforce valid formats.
-        try:
-            if data_format == "json":
-                api_data: dict = response.json()
-            else:
-                api_data = {"content": response.content}
-        except requests.exceptions.JSONDecodeError:
-            # Some responses return nothing, which can't be decoded...
-            api_data = {}
-        # Add a few response elements caller can use
-        api_data["api_response"] = {
-            "headers": response.headers,
-            "status_code": response.status_code,
-            "request_url": response.url,
-        }
-        return api_data
-
     def _call_api(
         self,
         method: str,
