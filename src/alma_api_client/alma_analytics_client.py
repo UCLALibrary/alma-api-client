@@ -1,6 +1,7 @@
 import json
 import xmltodict
 from alma_api_client import AlmaAPIClient
+from alma_api_client.models.api import APIResponse
 
 
 class AlmaAnalyticsClient:
@@ -104,9 +105,9 @@ class AlmaAnalyticsClient:
         }
         # First run: use constant + initial parameters merged
         params = constant_params | initial_params
-        report = self.alma_client.get_analytics_report(params)
+        api_response = self.alma_client.get_analytics_report(params)
         # Get data in usable format
-        report_data = self._get_report_data(report)
+        report_data = self._get_report_data(api_response)
         # Initial set of rows
         all_rows = self._get_rows(report_data)
 
@@ -120,15 +121,15 @@ class AlmaAnalyticsClient:
         while report_data["is_finished"] == "false":
             # After first run: use constant = subsequent parameters merged
             params = constant_params | subsequent_params
-            report = self.alma_client.get_analytics_report(params)
-            report_data = self._get_report_data(report)
+            api_response = self.alma_client.get_analytics_report(params)
+            report_data = self._get_report_data(api_response)
             all_rows.extend(self._get_rows(report_data))
 
         # Replace generic column names with real ones
         final_data = self._apply_column_names(column_names, all_rows)
         return final_data
 
-    def _get_report_data(self, xml_report: dict) -> dict:
+    def _get_report_data(self, api_response: APIResponse) -> dict:
         """Extract usable data from XML the Analytics API returns.
 
         :param xml_report: The full report as returned by the API.
@@ -136,7 +137,7 @@ class AlmaAnalyticsClient:
 
         # Report available only in XML
         # Entire XML report is a "list" with one value, in 'anies' element of json response
-        xml: str = xml_report["anies"][0]
+        xml: str = api_response.api_data["anies"][0]
         # Convert xml to python dict intermediate format
         xml_dict = xmltodict.parse(xml)
         # Convert this to real dict
