@@ -2,9 +2,6 @@ import requests
 from time import sleep
 from typing import Union, TypeAlias
 
-# TODO: Once 3.13 is supported, update this.
-# from warnings import deprecated # Python 3.13+
-from typing_extensions import deprecated  # Python 3.11
 from .models.api import APIResponse
 from .models.sets import Set, SetMember
 from .models.marc_records import (
@@ -120,59 +117,6 @@ class AlmaAPIClient:
         else:
             return self.BASE_URL + api
 
-    @deprecated("Will be removed when deprecated MARC get methods are removed.")
-    def _call_get_api(
-        self, api: str, parameters: dict | None = None, data_format: str = "json"
-    ) -> dict:
-        """Send a GET request to the API.
-
-        :param api: The API to call, with or without the base URL.
-        :param parameters: The optional request parameters.
-        :param data_format: The desired format, expected to be json or xml.
-        :return api_data: Response content and selected headers.
-        """
-        if parameters is None:
-            parameters = {}
-        api_url = self._get_api_url(api)
-        headers = self._get_headers(data_format)
-        response = requests.get(api_url, headers=headers, params=parameters)
-        api_data: dict = self._get_api_data(response, data_format)
-        return api_data
-
-    @deprecated("Will be removed when deprecated MARC update methods are removed.")
-    def _call_put_api(
-        self,
-        api: str,
-        data: Data,
-        parameters: dict | None = None,
-        data_format: str = "json",
-    ) -> dict:
-        """Send a PUT request to the API.
-
-        :param api: The API to call, with or without the base URL.
-        :param data: The data to send in the body of the request.
-        :param parameters: The optional request parameters.
-        :param data_format: The desired format, expected to be json or xml.
-        :return api_data: Response content and selected headers.
-        """
-        if parameters is None:
-            parameters = {}
-        headers = self._get_headers(data_format)
-        api_url = self._get_api_url(api)
-        # Handle both XML (required by update_bib) and default JSON
-        # TODO: Enforce valid formats.
-        if data_format == "xml":
-            response = requests.put(
-                api_url, headers=headers, data=data, params=parameters
-            )
-        else:
-            # json default
-            response = requests.put(
-                api_url, headers=headers, json=data, params=parameters
-            )
-        api_data: dict = self._get_api_data(response, data_format)
-        return api_data
-
     def create_item(
         self, bib_id: str, holding_id: str, data: dict, parameters: dict | None = None
     ) -> APIResponse:
@@ -229,32 +173,32 @@ class AlmaAPIClient:
 
     def wait_for_completion(
         self, job_id: str, instance_id: str, seconds_to_poll: int = 15
-    ) -> dict:
+    ) -> APIResponse:
         # Running a job just queues it to run; Alma assigns an instance id.
         # This method allows the caller to wait until the given instance of
         # the job has completed.
         api = f"/almaws/v1/conf/jobs/{job_id}/instances/{instance_id}"
-
-        # Initialize instance, to keep type-checker happy.
-        instance = {}
+        api_response = self._call_api(method="get", api=api)
         # progress value (0-100) can't be used as it remains 0 if FAILED.
         # Use status instead; values from
         # https://developers.exlibrisgroup.com/alma/apis/docs/xsd/rest_job_instance.xsd/
-        status = "NONE"  # Fake value until API is called.
+        status = api_response.api_data.get("status", {}).get("value", "")
+
+        # There are other values, but these indicate the job is still running (or at least,
+        # not yet done).
         while status in [
-            "NONE",
             "QUEUED",
             "PENDING",
             "INITIALIZING",
             "RUNNING",
             "FINALIZING",
         ]:
-            # TODO: Replace this with _call_api()
-            instance = self._call_get_api(api)
-            status = instance["status"]["value"]
+            api_response = self._call_api(method="get", api=api)
+            status = api_response.api_data.get("status", {}).get("value", "")
             print(status)
             sleep(seconds_to_poll)
-        return instance
+        # Return the whole final response, for the caller to use as desired.
+        return api_response
 
     def get_fees(self, user_id: str, parameters: dict | None = None) -> APIResponse:
         if parameters is None:
@@ -296,46 +240,6 @@ class AlmaAPIClient:
         api = f"/almaws/v1/acq/vendors/{vendor_code}"
         api_response = self._call_api(method="get", api=api, parameters=parameters)
         return api_response
-
-    @deprecated("Use get_bib_record() instead.")
-    def get_bib(self, mms_id: str, parameters: dict | None = None) -> dict:
-        """Return dictionary response, with Alma bib record (in Alma XML format),
-        in "content" element.
-        """
-        if parameters is None:
-            parameters = {}
-        api = f"/almaws/v1/bibs/{mms_id}"
-        return self._call_get_api(api, parameters, data_format="xml")
-
-    @deprecated("Use update_bib_record() instead.")
-    def update_bib(
-        self, mms_id: str, data: bytes, parameters: dict | None = None
-    ) -> dict:
-        if parameters is None:
-            parameters = {}
-        api = f"/almaws/v1/bibs/{mms_id}"
-        return self._call_put_api(api, data, parameters, data_format="xml")
-
-    @deprecated("Use get_holding_record() instead")
-    def get_holding(
-        self, mms_id: str, holding_id: str, parameters: dict | None = None
-    ) -> dict:
-        """Return dictionary response, with Alma holding record (in Alma XML format),
-        in "content" element.
-        """
-        if parameters is None:
-            parameters = {}
-        api = f"/almaws/v1/bibs/{mms_id}/holdings/{holding_id}"
-        return self._call_get_api(api, parameters, data_format="xml")
-
-    @deprecated("Use get_holding_record() instead.")
-    def update_holding(
-        self, mms_id: str, holding_id: str, data: bytes, parameters: dict | None = None
-    ) -> dict:
-        if parameters is None:
-            parameters = {}
-        api = f"/almaws/v1/bibs/{mms_id}/holdings/{holding_id}"
-        return self._call_put_api(api, data, data_format="xml")
 
     def get_set_members(
         self, set_id: str, parameters: dict | None = None
