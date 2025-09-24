@@ -1,11 +1,13 @@
+import re
 import requests
 from requests.structures import CaseInsensitiveDict
 from typing import Any
 
 
 class APIResponse:
-    def __init__(self, response: requests.Response, data_format: str = "json") -> None:
+    def __init__(self, response: requests.Response) -> None:
         self._response = response
+        data_format = self.content_type
         try:
             if data_format == "json":
                 self.api_data: dict = response.json()
@@ -16,19 +18,19 @@ class APIResponse:
             # Some responses return nothing, which can't be decoded...
             self.api_data = {}
 
-    def __getattr__(self, attribute_name) -> Any:
-        """
-        Convenience method for response attributes not explicitly
-        exposed via properties.
+    # def __getattr__(self, attribute_name) -> Any:
+    #     """
+    #     Convenience method for response attributes not explicitly
+    #     exposed via properties.
 
-        :param attribute_name: The attribute name.
-        :return: The attribute value from the response object, if found.
-        :raises: `AttributeErrror`, if `response.attribute_name` not found.
-        """
-        try:
-            return getattr(self._response, attribute_name)
-        except AttributeError:
-            raise AttributeError(f"{attribute_name} not found.")
+    #     :param attribute_name: The attribute name.
+    #     :return: The attribute value from the response object, if found.
+    #     :raises: `AttributeErrror`, if `response.attribute_name` not found.
+    #     """
+    #     try:
+    #         return getattr(self._response, attribute_name)
+    #     except AttributeError:
+    #         raise AttributeError(f"{attribute_name} not found.")
 
     @property
     def api_calls_remaining(self) -> str:
@@ -39,8 +41,20 @@ class APIResponse:
         return self._response.content
 
     @property
+    def content_type(self) -> str:
+        # Header value looks like this:
+        # application/json;charset=UTF-8
+        ct_header = self.headers.get("Content-Type", "")
+        match = re.search(r"application/([a-z].*);charset=UTF-8", ct_header)
+        return match.group(1) if match else ""
+
+    @property
     def headers(self) -> CaseInsensitiveDict:
         return self._response.headers
+
+    @property
+    def ok(self) -> bool:
+        return self._response.ok
 
     @property
     def status_code(self) -> int:

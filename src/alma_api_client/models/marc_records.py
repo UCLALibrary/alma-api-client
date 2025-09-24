@@ -2,19 +2,21 @@ import xmltodict
 import xml.etree.ElementTree as ET
 from io import BytesIO
 from pymarc import parse_xml_to_array, record_to_xml_node, Record
+from requests import Response
 from ..alma_api_client import APIResponse
 
 
-class AlmaMARCRecord:
+class AlmaMARCRecord(APIResponse):
     # In this base class, only the MARC record and the XML are available.
     # Subclasses will add subclass-specific attributes.
     __slots__ = ["marc_record", "_all_attributes", "_record_type"]
 
-    def __init__(self, api_response: APIResponse | None = None) -> None:
+    def __init__(self, api_response: Response | None = None) -> None:
         if api_response:
+            super().__init__(api_response)
             self._create_from_api_response(api_response)
 
-    def _create_from_api_response(self, api_response: APIResponse) -> None:
+    def _create_from_api_response(self, api_response: Response) -> None:
         """Add attributes to this `AlmaMARCRecord` object based on data from the API response.
 
         :param api_response: A dict of data provided by the Alma API.
@@ -22,7 +24,7 @@ class AlmaMARCRecord:
         """
         # The most important element in the API response is "content", which contains
         # XML as bytes with UTF-8 encoding.
-        alma_xml: bytes = api_response.api_data.get("content", b"")
+        alma_xml: bytes = self.api_data.get("content", b"")
         self.marc_record = self._get_pymarc_record_from_xml(alma_xml)
 
         # Some other XML elements may be relevant, especially for creating records.
@@ -129,7 +131,7 @@ class AuthorityRecord(AlmaMARCRecord):
         "vocabulary",
     ]
 
-    def __init__(self, api_response: APIResponse | None = None) -> None:
+    def __init__(self, api_response: Response | None = None) -> None:
         super().__init__(api_response)
         self._record_type = "authority"
 
@@ -143,7 +145,7 @@ class BibRecord(AlmaMARCRecord):
         "suppress_from_publishing",
     ]
 
-    def __init__(self, api_response: APIResponse | None = None) -> None:
+    def __init__(self, api_response: Response | None = None) -> None:
         super().__init__(api_response)
         self._record_type = "bib"
 
@@ -158,7 +160,7 @@ class HoldingRecord(AlmaMARCRecord):
         "suppress_from_publishing",
     ]
 
-    def __init__(self, api_response: APIResponse | None = None) -> None:
+    def __init__(self, api_response: Response | None = None) -> None:
         super().__init__(api_response)
         self._record_type = "holding"
 

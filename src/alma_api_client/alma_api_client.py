@@ -10,7 +10,6 @@ from .models.marc_records import (
     HoldingRecord,
 )
 
-
 # For requests data parameter, which is very flexible;
 # (optional) Dictionary, list of tuples, bytes, or file-like object to send...
 # this is better than Any.
@@ -45,7 +44,7 @@ class AlmaAPIClient:
         data: Data | None = None,
         parameters: dict | None = None,
         data_format: str = "json",
-    ) -> APIResponse:
+    ) -> requests.Response:
         if method not in ["delete", "get", "post", "put"]:
             raise ValueError(f"Unsupported method: {method}")
 
@@ -74,7 +73,7 @@ class AlmaAPIClient:
             **data_params,  # type: ignore
         )
 
-        return APIResponse(response, data_format=data_format)
+        return response
 
     def _get_api_url(self, api: str) -> str:
         """Get the full URL needed to call the API.  The base URL is aadded,
@@ -97,7 +96,7 @@ class AlmaAPIClient:
         api_response = self._call_api(
             method="post", api=api, data=data, parameters=parameters
         )
-        return api_response
+        return APIResponse(api_response)
 
     def get_items(
         self, bib_id: str, holding_id: str, parameters: dict | None = None
@@ -106,7 +105,7 @@ class AlmaAPIClient:
             parameters = {}
         api = f"/almaws/v1/bibs/{bib_id}/holdings/{holding_id}/items"
         api_response = self._call_api(method="get", api=api, parameters=parameters)
-        return api_response
+        return APIResponse(api_response)
 
     def get_integration_profiles(self, parameters: dict | None = None) -> APIResponse:
         # Caller can pass search parameters, but must deal with possible
@@ -115,7 +114,7 @@ class AlmaAPIClient:
             parameters = {}
         api = "/almaws/v1/conf/integration-profiles"
         api_response = self._call_api(method="get", api=api, parameters=parameters)
-        return api_response
+        return APIResponse(api_response)
 
     def get_jobs(self, parameters: dict | None = None) -> APIResponse:
         # Caller normally will pass parameters, but they're not required.
@@ -124,7 +123,7 @@ class AlmaAPIClient:
             parameters = {}
         api = "/almaws/v1/conf/jobs"
         api_response = self._call_api(method="get", api=api, parameters=parameters)
-        return api_response
+        return APIResponse(api_response)
 
     def run_job(
         self, job_id, data: dict | None = None, parameters: dict | None = None
@@ -140,7 +139,7 @@ class AlmaAPIClient:
         api_response = self._call_api(
             method="post", api=api, data=data, parameters=parameters
         )
-        return api_response
+        return APIResponse(api_response)
 
     def wait_for_completion(
         self, job_id: str, instance_id: str, seconds_to_poll: int = 15
@@ -153,7 +152,8 @@ class AlmaAPIClient:
         # progress value (0-100) can't be used as it remains 0 if FAILED.
         # Use status instead; values from
         # https://developers.exlibrisgroup.com/alma/apis/docs/xsd/rest_job_instance.xsd/
-        status = api_response.api_data.get("status", {}).get("value", "")
+        response_obj = APIResponse(api_response)
+        status = response_obj.api_data.get("status", {}).get("value", "")
 
         # There are other values, but these indicate the job is still running (or at least,
         # not yet done).
@@ -164,19 +164,19 @@ class AlmaAPIClient:
             "RUNNING",
             "FINALIZING",
         ]:
-            api_response = self._call_api(method="get", api=api)
-            status = api_response.api_data.get("status", {}).get("value", "")
+            response_obj = APIResponse(api_response)
+            status = response_obj.api_data.get("status", {}).get("value", "")
             print(status)
             sleep(seconds_to_poll)
         # Return the whole final response, for the caller to use as desired.
-        return api_response
+        return APIResponse(api_response)
 
     def get_fees(self, user_id: str, parameters: dict | None = None) -> APIResponse:
         if parameters is None:
             parameters = {}
         api = f"/almaws/v1/users/{user_id}/fees"
         api_response = self._call_api(method="get", api=api, parameters=parameters)
-        return api_response
+        return APIResponse(api_response)
 
     def get_analytics_report(self, parameters: dict | None = None) -> APIResponse:
         # Docs say to URL-encode report name (path);
@@ -185,7 +185,7 @@ class AlmaAPIClient:
             parameters = {}
         api = "/almaws/v1/analytics/reports"
         api_response = self._call_api(method="get", api=api, parameters=parameters)
-        return api_response
+        return APIResponse(api_response)
 
     def get_analytics_path(
         self, path: str, parameters: dict | None = None
@@ -194,14 +194,14 @@ class AlmaAPIClient:
             parameters = {}
         api = f"/almaws/v1/analytics/paths/{path}"
         api_response = self._call_api(method="get", api=api, parameters=parameters)
-        return api_response
+        return APIResponse(api_response)
 
     def get_vendors(self, parameters: dict | None = None) -> APIResponse:
         if parameters is None:
             parameters = {}
         api = "/almaws/v1/acq/vendors"
         api_response = self._call_api(method="get", api=api, parameters=parameters)
-        return api_response
+        return APIResponse(api_response)
 
     def get_vendor(
         self, vendor_code: str, parameters: dict | None = None
@@ -210,7 +210,7 @@ class AlmaAPIClient:
             parameters = {}
         api = f"/almaws/v1/acq/vendors/{vendor_code}"
         api_response = self._call_api(method="get", api=api, parameters=parameters)
-        return api_response
+        return APIResponse(api_response)
 
     def get_set_members(
         self, set_id: str, parameters: dict | None = None
@@ -219,7 +219,7 @@ class AlmaAPIClient:
             parameters = {}
         api = f"/almaws/v1/conf/sets/{set_id}/members"
         api_response = self._call_api(method="get", api=api, parameters=parameters)
-        return api_response
+        return APIResponse(api_response)
 
     def create_user(self, data: dict, parameters: dict | None = None) -> APIResponse:
         if parameters is None:
@@ -228,21 +228,21 @@ class AlmaAPIClient:
         api_response = self._call_api(
             method="post", api=api, data=data, parameters=parameters
         )
-        return api_response
+        return APIResponse(api_response)
 
     def delete_user(self, user_id: str, parameters: dict | None = None) -> APIResponse:
         if parameters is None:
             parameters = {}
         api = f"/almaws/v1/users/{user_id}"
         api_response = self._call_api(method="delete", api=api, parameters=parameters)
-        return api_response
+        return APIResponse(api_response)
 
     def get_user(self, user_id: str, parameters: dict | None = None) -> APIResponse:
         if parameters is None:
             parameters = {}
         api = f"/almaws/v1/users/{user_id}"
         api_response = self._call_api(method="get", api=api, parameters=parameters)
-        return api_response
+        return APIResponse(api_response)
 
     def update_user(
         self, user_id: str, data: dict, parameters: dict | None = None
@@ -253,7 +253,7 @@ class AlmaAPIClient:
         api_response = self._call_api(
             method="put", api=api, data=data, parameters=parameters
         )
-        return api_response
+        return APIResponse(api_response)
 
     def get_general_configuration(self) -> APIResponse:
         """Return general configuration info.
@@ -261,13 +261,13 @@ class AlmaAPIClient:
         """
         api = "/almaws/v1/conf/general"
         api_response = self._call_api(method="get", api=api)
-        return api_response
+        return APIResponse(api_response)
 
     def get_code_tables(self) -> APIResponse:
         """Return list of code tables.  This specific API is undocumented."""
         api = "/almaws/v1/conf/code-tables"
         api_response = self._call_api(method="get", api=api)
-        return api_response
+        return APIResponse(api_response)
 
     def get_code_table(
         self, code_table: str, parameters: dict | None = None
@@ -277,13 +277,13 @@ class AlmaAPIClient:
             parameters = {}
         api = f"/almaws/v1/conf/code-tables/{code_table}"
         api_response = self._call_api(method="get", api=api, parameters=parameters)
-        return api_response
+        return APIResponse(api_response)
 
     def get_mapping_tables(self) -> APIResponse:
         """Return list of mapping tables.  This specific API is undocumented."""
         api = "/almaws/v1/conf/mapping-tables"
         api_response = self._call_api(method="get", api=api)
-        return api_response
+        return APIResponse(api_response)
 
     def get_mapping_table(
         self, mapping_table: str, parameters: dict | None = None
@@ -293,13 +293,13 @@ class AlmaAPIClient:
             parameters = {}
         api = f"/almaws/v1/conf/code-tables/{mapping_table}"
         api_response = self._call_api(method="get", api=api, parameters=parameters)
-        return api_response
+        return APIResponse(api_response)
 
     def get_libraries(self) -> APIResponse:
         """Return all libraries."""
         api = "/almaws/v1/conf/libraries"
         api_response = self._call_api(method="get", api=api)
-        return api_response
+        return APIResponse(api_response)
 
     def get_library(self, library_code: str) -> APIResponse:
         """Return data for a single library, via code.
@@ -307,7 +307,7 @@ class AlmaAPIClient:
         """
         api = f"/almaws/v1/conf/libraries/{library_code}"
         api_response = self._call_api(method="get", api=api)
-        return api_response
+        return APIResponse(api_response)
 
     def get_circulation_desks(
         self, library_code: str, parameters: dict | None = None
@@ -317,7 +317,7 @@ class AlmaAPIClient:
             parameters = {}
         api = f"/almaws/v1/conf/libraries/{library_code}/circ-desks/"
         api_response = self._call_api(method="get", api=api, parameters=parameters)
-        return api_response
+        return APIResponse(api_response)
 
     def get_funds(self, parameters: dict | None = None) -> APIResponse:
         """Return data about all funds matching search in parameters."""
@@ -325,7 +325,7 @@ class AlmaAPIClient:
             parameters = {}
         api = "/almaws/v1/acq/funds"
         api_response = self._call_api(method="get", api=api, parameters=parameters)
-        return api_response
+        return APIResponse(api_response)
 
     def get_fund(self, fund_id: str, parameters: dict | None = None) -> APIResponse:
         """Return data about a specific fund."""
@@ -333,7 +333,7 @@ class AlmaAPIClient:
             parameters = {}
         api = f"/almaws/v1/acq/funds/{fund_id}"
         api_response = self._call_api(method="get", api=api, parameters=parameters)
-        return api_response
+        return APIResponse(api_response)
 
     def update_fund(
         self, fund_id: str, data: dict, parameters: dict | None = None
@@ -345,7 +345,7 @@ class AlmaAPIClient:
         api_response = self._call_api(
             method="put", api=api, data=data, parameters=parameters
         )
-        return api_response
+        return APIResponse(api_response)
 
     def get_set(self, set_id: str, get_all_members: bool = True) -> Set:
         """Retrieve data for a specific set.
@@ -369,7 +369,8 @@ class AlmaAPIClient:
                     api=alma_set.members_api,
                     parameters={"offset": offset, "limit": limit},
                 )
-                new_members = api_response.api_data.get("member", [])
+                response_obj = APIResponse(api_response)
+                new_members = response_obj.api_data.get("member", [])
                 offset += len(new_members)
                 for new_member in new_members:
                     members.append(SetMember(member_data=new_member))
@@ -385,7 +386,7 @@ class AlmaAPIClient:
         self,
         api: str,
         parameters: dict | None = None,
-    ) -> APIResponse:
+    ) -> requests.Response:
         api_response = self._call_api(
             method="get", api=api, parameters=parameters, data_format="xml"
         )
@@ -466,7 +467,7 @@ class AlmaAPIClient:
             parameters = {}
         api = f"/almaws/v1/bibs/{bib_id}"
         api_response = self._call_api(method="delete", api=api, parameters=parameters)
-        return api_response
+        return APIResponse(api_response)
 
     def create_holding_record(
         self, bib_id: str, holding_record: HoldingRecord, parameters: dict | None = None
@@ -503,4 +504,4 @@ class AlmaAPIClient:
             parameters = {}
         api = f"/almaws/v1/bibs/{bib_id}/holdings/{holding_id}"
         api_response = self._call_api(method="delete", api=api, parameters=parameters)
-        return api_response
+        return APIResponse(api_response)

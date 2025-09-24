@@ -1,4 +1,5 @@
 from enum import Enum
+from requests import Response
 from ..alma_api_client import APIResponse
 
 
@@ -48,36 +49,34 @@ class SetMember:
         self.link = member_data.get("link", "")
 
 
-class Set:
-    def __init__(self, name: str = "", api_response: APIResponse | None = None) -> None:
+class Set(APIResponse):
+    def __init__(self, name: str = "", api_response: Response | None = None) -> None:
         # Other fields could be added here, but unless we're creating sets from
         # scratch via API, I don't see a need.
         self.name = name
         if api_response:
+            super().__init__(api_response)
             self._create_from_api_response(api_response)
 
-    def _create_from_api_response(self, api_response: APIResponse) -> None:
+    def _create_from_api_response(self, api_response: Response) -> None:
         """Add attributes to this `Set` object based on data from the API response.
 
         :param api_response: An `APIResponse` provided by the Alma API.
         :return: None
         """
-        self.name = api_response.api_data.get("name", "")
-        self.content_type = self._get_content_type_from_api_response(api_response)
+        self.name = self.api_data.get("name", "")
+        self.set_type = self._get_set_content_type()
 
-        member_info = api_response.api_data.get("number_of_members", {})
+        member_info = self.api_data.get("number_of_members", {})
         self.number_of_members = member_info.get("value", 0)
         self.members_api = member_info.get("link", "")
 
-    def _get_content_type_from_api_response(
-        self, api_response: APIResponse
-    ) -> SetContentType:
+    def _get_set_content_type(self) -> SetContentType:
         """Convert the set content type to an enum.
 
-        :param api_response: An `APIResponse` provided by the Alma API.
         :return: A `SetContentType` enum.
         """
-        content_info = api_response.api_data.get("content", {})
+        content_info = self.api_data.get("content", {})
         # content_info looks like this (values will vary based on type):
         # {'content': {'desc': 'Physical items', 'value': 'ITEM'}
         return SetContentType(content_info.get("desc"))
