@@ -60,6 +60,7 @@ class AlmaAPIClient:
 
         api_url = self._get_api_url(api)
         headers = self._get_headers(data_format)
+        # request requires an empty dictionary, if params is passed but not populated.
         if parameters is None:
             parameters = {}
 
@@ -90,8 +91,6 @@ class AlmaAPIClient:
     def create_item(
         self, bib_id: str, holding_id: str, data: dict, parameters: dict | None = None
     ) -> APIResponse:
-        if parameters is None:
-            parameters = {}
         api = f"/almaws/v1/bibs/{bib_id}/holdings/{holding_id}/items"
         api_response = self._call_api(
             method="post", api=api, data=data, parameters=parameters
@@ -101,8 +100,6 @@ class AlmaAPIClient:
     def get_items(
         self, bib_id: str, holding_id: str, parameters: dict | None = None
     ) -> APIResponse:
-        if parameters is None:
-            parameters = {}
         api = f"/almaws/v1/bibs/{bib_id}/holdings/{holding_id}/items"
         api_response = self._call_api(method="get", api=api, parameters=parameters)
         return APIResponse(api_response)
@@ -110,8 +107,6 @@ class AlmaAPIClient:
     def get_integration_profiles(self, parameters: dict | None = None) -> APIResponse:
         # Caller can pass search parameters, but must deal with possible
         # multiple matches.
-        if parameters is None:
-            parameters = {}
         api = "/almaws/v1/conf/integration-profiles"
         api_response = self._call_api(method="get", api=api, parameters=parameters)
         return APIResponse(api_response)
@@ -119,8 +114,6 @@ class AlmaAPIClient:
     def get_jobs(self, parameters: dict | None = None) -> APIResponse:
         # Caller normally will pass parameters, but they're not required.
         # Caller must deal with possible multiple matches.
-        if parameters is None:
-            parameters = {}
         api = "/almaws/v1/conf/jobs"
         api_response = self._call_api(method="get", api=api, parameters=parameters)
         return APIResponse(api_response)
@@ -133,8 +126,6 @@ class AlmaAPIClient:
         # Running a scheduled job requires empty data {}; not sure about other jobs
         if data is None:
             data = {}
-        if parameters is None:
-            parameters = {}
         api = f"/almaws/v1/conf/jobs/{job_id}"
         api_response = self._call_api(
             method="post", api=api, data=data, parameters=parameters
@@ -172,8 +163,6 @@ class AlmaAPIClient:
         return APIResponse(api_response)
 
     def get_fees(self, user_id: str, parameters: dict | None = None) -> APIResponse:
-        if parameters is None:
-            parameters = {}
         api = f"/almaws/v1/users/{user_id}/fees"
         api_response = self._call_api(method="get", api=api, parameters=parameters)
         return APIResponse(api_response)
@@ -181,8 +170,6 @@ class AlmaAPIClient:
     def get_analytics_report(self, parameters: dict | None = None) -> APIResponse:
         # Docs say to URL-encode report name (path);
         # request lib is doing it automatically.
-        if parameters is None:
-            parameters = {}
         api = "/almaws/v1/analytics/reports"
         api_response = self._call_api(method="get", api=api, parameters=parameters)
         return APIResponse(api_response)
@@ -190,15 +177,11 @@ class AlmaAPIClient:
     def get_analytics_path(
         self, path: str, parameters: dict | None = None
     ) -> APIResponse:
-        if parameters is None:
-            parameters = {}
         api = f"/almaws/v1/analytics/paths/{path}"
         api_response = self._call_api(method="get", api=api, parameters=parameters)
         return APIResponse(api_response)
 
     def get_vendors(self, parameters: dict | None = None) -> APIResponse:
-        if parameters is None:
-            parameters = {}
         api = "/almaws/v1/acq/vendors"
         api_response = self._call_api(method="get", api=api, parameters=parameters)
         return APIResponse(api_response)
@@ -206,8 +189,6 @@ class AlmaAPIClient:
     def get_vendor(
         self, vendor_code: str, parameters: dict | None = None
     ) -> APIResponse:
-        if parameters is None:
-            parameters = {}
         api = f"/almaws/v1/acq/vendors/{vendor_code}"
         api_response = self._call_api(method="get", api=api, parameters=parameters)
         return APIResponse(api_response)
@@ -215,15 +196,11 @@ class AlmaAPIClient:
     def get_set_members(
         self, set_id: str, parameters: dict | None = None
     ) -> APIResponse:
-        if parameters is None:
-            parameters = {}
         api = f"/almaws/v1/conf/sets/{set_id}/members"
         api_response = self._call_api(method="get", api=api, parameters=parameters)
         return APIResponse(api_response)
 
     def create_user(self, data: dict, parameters: dict | None = None) -> APIResponse:
-        if parameters is None:
-            parameters = {}
         api = "/almaws/v1/users"
         api_response = self._call_api(
             method="post", api=api, data=data, parameters=parameters
@@ -231,15 +208,11 @@ class AlmaAPIClient:
         return APIResponse(api_response)
 
     def delete_user(self, user_id: str, parameters: dict | None = None) -> APIResponse:
-        if parameters is None:
-            parameters = {}
         api = f"/almaws/v1/users/{user_id}"
         api_response = self._call_api(method="delete", api=api, parameters=parameters)
         return APIResponse(api_response)
 
     def get_user(self, user_id: str, parameters: dict | None = None) -> APIResponse:
-        if parameters is None:
-            parameters = {}
         api = f"/almaws/v1/users/{user_id}"
         api_response = self._call_api(method="get", api=api, parameters=parameters)
         return APIResponse(api_response)
@@ -247,8 +220,6 @@ class AlmaAPIClient:
     def update_user(
         self, user_id: str, data: dict, parameters: dict | None = None
     ) -> APIResponse:
-        if parameters is None:
-            parameters = {}
         api = f"/almaws/v1/users/{user_id}"
         api_response = self._call_api(
             method="put", api=api, data=data, parameters=parameters
@@ -273,8 +244,6 @@ class AlmaAPIClient:
         self, code_table: str, parameters: dict | None = None
     ) -> APIResponse:
         """Return specific code table, via name from get_code_tables()."""
-        if parameters is None:
-            parameters = {}
         api = f"/almaws/v1/conf/code-tables/{code_table}"
         api_response = self._call_api(method="get", api=api, parameters=parameters)
         return APIResponse(api_response)
@@ -289,8 +258,6 @@ class AlmaAPIClient:
         self, mapping_table: str, parameters: dict | None = None
     ) -> APIResponse:
         """Return specific mapping table, via name from get_mapping_tables()."""
-        if parameters is None:
-            parameters = {}
         api = f"/almaws/v1/conf/code-tables/{mapping_table}"
         api_response = self._call_api(method="get", api=api, parameters=parameters)
         return APIResponse(api_response)
@@ -313,24 +280,18 @@ class AlmaAPIClient:
         self, library_code: str, parameters: dict | None = None
     ) -> APIResponse:
         """Return data about circ desks in a single library, via code."""
-        if parameters is None:
-            parameters = {}
         api = f"/almaws/v1/conf/libraries/{library_code}/circ-desks/"
         api_response = self._call_api(method="get", api=api, parameters=parameters)
         return APIResponse(api_response)
 
     def get_funds(self, parameters: dict | None = None) -> APIResponse:
         """Return data about all funds matching search in parameters."""
-        if parameters is None:
-            parameters = {}
         api = "/almaws/v1/acq/funds"
         api_response = self._call_api(method="get", api=api, parameters=parameters)
         return APIResponse(api_response)
 
     def get_fund(self, fund_id: str, parameters: dict | None = None) -> APIResponse:
         """Return data about a specific fund."""
-        if parameters is None:
-            parameters = {}
         api = f"/almaws/v1/acq/funds/{fund_id}"
         api_response = self._call_api(method="get", api=api, parameters=parameters)
         return APIResponse(api_response)
@@ -339,8 +300,6 @@ class AlmaAPIClient:
         self, fund_id: str, data: dict, parameters: dict | None = None
     ) -> APIResponse:
         """Update a specific fund."""
-        if parameters is None:
-            parameters = {}
         api = f"/almaws/v1/acq/funds/{fund_id}"
         api_response = self._call_api(
             method="put", api=api, data=data, parameters=parameters
@@ -439,8 +398,6 @@ class AlmaAPIClient:
     def create_bib_record(
         self, bib_record: BibRecord, parameters: dict | None = None
     ) -> BibRecord:
-        if parameters is None:
-            parameters = {}
         api = "/almaws/v1/bibs"
         data = bib_record.alma_xml
         api_response = self._call_api(
@@ -451,8 +408,6 @@ class AlmaAPIClient:
     def update_bib_record(
         self, bib_id: str, bib_record: BibRecord, parameters: dict | None = None
     ) -> BibRecord:
-        if parameters is None:
-            parameters = {}
         api = f"/almaws/v1/bibs/{bib_id}"
         data = bib_record.alma_xml
         api_response = self._call_api(
@@ -463,8 +418,6 @@ class AlmaAPIClient:
     def delete_bib_record(
         self, bib_id: str, parameters: dict | None = None
     ) -> APIResponse:
-        if parameters is None:
-            parameters = {}
         api = f"/almaws/v1/bibs/{bib_id}"
         api_response = self._call_api(method="delete", api=api, parameters=parameters)
         return APIResponse(api_response)
@@ -472,8 +425,6 @@ class AlmaAPIClient:
     def create_holding_record(
         self, bib_id: str, holding_record: HoldingRecord, parameters: dict | None = None
     ) -> HoldingRecord:
-        if parameters is None:
-            parameters = {}
         api = f"/almaws/v1/bibs/{bib_id}/holdings"
         data = holding_record.alma_xml
         api_response = self._call_api(
@@ -487,8 +438,6 @@ class AlmaAPIClient:
         holding_record: HoldingRecord,
         parameters: dict | None = None,
     ) -> HoldingRecord:
-        if parameters is None:
-            parameters = {}
         holding_id = holding_record.holding_id
         api = f"/almaws/v1/bibs/{bib_id}/holdings/{holding_id}"
         data = holding_record.alma_xml
@@ -500,8 +449,6 @@ class AlmaAPIClient:
     def delete_holding_record(
         self, bib_id: str, holding_id: str, parameters: dict | None = None
     ) -> APIResponse:
-        if parameters is None:
-            parameters = {}
         api = f"/almaws/v1/bibs/{bib_id}/holdings/{holding_id}"
         api_response = self._call_api(method="delete", api=api, parameters=parameters)
         return APIResponse(api_response)
