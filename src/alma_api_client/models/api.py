@@ -18,20 +18,6 @@ class APIResponse:
             # Some responses return nothing, which can't be decoded...
             self.api_data = {}
 
-    # def __getattr__(self, attribute_name) -> Any:
-    #     """
-    #     Convenience method for response attributes not explicitly
-    #     exposed via properties.
-
-    #     :param attribute_name: The attribute name.
-    #     :return: The attribute value from the response object, if found.
-    #     :raises: `AttributeErrror`, if `response.attribute_name` not found.
-    #     """
-    #     try:
-    #         return getattr(self._response, attribute_name)
-    #     except AttributeError:
-    #         raise AttributeError(f"{attribute_name} not found.")
-
     @property
     def api_calls_remaining(self) -> str:
         return self.headers.get("X-Exl-Api-Remaining", "")
