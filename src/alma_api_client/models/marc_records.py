@@ -3,7 +3,7 @@ import xml.etree.ElementTree as ET
 from io import BytesIO
 from pymarc import parse_xml_to_array, record_to_xml_node, Record
 from requests import Response
-from ..alma_api_client import APIResponse
+from alma_api_client.models.api import APIResponse
 
 
 class AlmaMARCRecord(APIResponse):

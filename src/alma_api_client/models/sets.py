@@ -1,6 +1,6 @@
 from enum import Enum
 from requests import Response
-from ..alma_api_client import APIResponse
+from alma_api_client.models.api import APIResponse
 
 
 # Derived from /almaws/v1/conf/code-tables/SetContentType

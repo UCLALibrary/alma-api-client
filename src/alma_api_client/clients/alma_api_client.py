@@ -2,9 +2,9 @@ import requests
 from time import sleep
 from typing import Union, TypeAlias
 
-from .models.api import APIResponse
-from .models.sets import Set, SetMember
-from .models.marc_records import (
+from alma_api_client.models.api import APIResponse
+from alma_api_client.models.sets import Set, SetMember
+from alma_api_client.models.marc_records import (
     AuthorityRecord,
     BibRecord,
     HoldingRecord,
