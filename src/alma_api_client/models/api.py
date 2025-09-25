@@ -19,8 +19,14 @@ class APIResponse:
             self.api_data = {}
 
     @property
-    def api_calls_remaining(self) -> str:
-        return self.headers.get("X-Exl-Api-Remaining", "")
+    def api_calls_remaining(self) -> int:
+        # Data in response headers is a string; cast to int
+        # so we can do math / comparisons.
+        calls_remaining = self.headers.get("X-Exl-Api-Remaining", "0")
+        try:
+            return int(calls_remaining)
+        except ValueError:
+            return 0
 
     @property
     def content(self) -> bytes:
