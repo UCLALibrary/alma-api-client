@@ -2,7 +2,7 @@ import requests
 from time import sleep
 from typing import Union, TypeAlias
 
-from alma_api_client.models.api import APIResponse
+from alma_api_client.models.api import APIResponse, APIError
 from alma_api_client.models.sets import Set, SetMember
 from alma_api_client.models.marc_records import (
     AuthorityRecord,
@@ -315,27 +315,30 @@ class AlmaAPIClient:
         """
         api = f"/almaws/v1/conf/sets/{set_id}"
         api_response = self._call_api(method="get", api=api)
-        alma_set = Set(api_response=api_response)
+        if api_response.ok:
+            alma_set = Set(api_response=api_response)
 
-        members = []
-        if get_all_members:
-            # Get all member references and add them to the Set.
-            offset = 0
-            limit = 100
-            while len(members) < alma_set.number_of_members:
-                api_response = self._call_api(
-                    method="get",
-                    api=alma_set.members_api,
-                    parameters={"offset": offset, "limit": limit},
-                )
-                response_obj = APIResponse(api_response)
-                new_members = response_obj.api_data.get("member", [])
-                offset += len(new_members)
-                for new_member in new_members:
-                    members.append(SetMember(member_data=new_member))
+            members = []
+            if get_all_members:
+                # Get all member references and add them to the Set.
+                offset = 0
+                limit = 100
+                while len(members) < alma_set.number_of_members:
+                    api_response = self._call_api(
+                        method="get",
+                        api=alma_set.members_api,
+                        parameters={"offset": offset, "limit": limit},
+                    )
+                    response_obj = APIResponse(api_response)
+                    new_members = response_obj.api_data.get("member", [])
+                    offset += len(new_members)
+                    for new_member in new_members:
+                        members.append(SetMember(member_data=new_member))
 
-        alma_set.add_members(members)
-        return alma_set
+            alma_set.add_members(members)
+            return alma_set
+        else:
+            raise APIError(api_response, "Error retrieving set")
 
     def _retrieve_all(self):
         # TODO: Is it practical to generalize API iteration to fetch all whatevers?

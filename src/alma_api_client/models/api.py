@@ -59,3 +59,37 @@ class APIResponse:
 
     def raise_for_status(self) -> None:
         self._response.raise_for_status()
+
+
+class APIError(APIResponse, Exception):
+    def __init__(self, response: requests.Response, message: str) -> None:
+        super().__init__(response)
+        self.message = message
+
+    def __str__(self) -> str:
+        return f"HTTP {self.status_code}: {self.message}"
+
+    @property
+    def error_messages(self) -> list[str]:
+        # "errorList" is a dict... with one element called "error", which is a list
+        # of dicts with "errorCode", "errorMessage", and "trackingId" keys.
+        # Example:
+        # {
+        #     "errorList": {
+        #         "error": [
+        #             {
+        #                 "errorCode": "60107",
+        #                 "errorMessage": "Set not found: Set ID abc",
+        #                 "trackingId": "E01-2609185557-08VLC-AWAE718524417",
+        #             }
+        #         ]
+        #     },
+        #     "errorsExist": True,
+        # }
+        error_list = self.api_data.get("errorList", {}).get("error", [])
+        # It's not clear that the order of error codes or messages is meaningful.
+        # We assume that "errorList" being a list implies some calls can return
+        # multiple errors.
+        # The codes don't seem useful.
+        # TODO: Consider enhancement to return errorCode and trackingId with high debug level.
+        return [error_info.get("errorMessage", "") for error_info in error_list]
