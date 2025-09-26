@@ -352,7 +352,6 @@ class AlmaAPIClient:
         api_response = self._call_api(
             method="get", api=api, parameters=parameters, data_format="xml"
         )
-        api_response.raise_for_status()
         return api_response
 
     def get_authority_record(
@@ -379,7 +378,10 @@ class AlmaAPIClient:
         """
         api = f"/almaws/v1/bibs/{bib_id}"
         api_response = self._get_marc_record(api, parameters)
-        return BibRecord(api_response)
+        if api_response.ok:
+            return BibRecord(api_response)
+        else:
+            raise APIError(api_response, "Error retrieving bib record.")
 
     def get_holding_record(
         self, bib_id: str, holding_id: str, parameters: dict | None = None
