@@ -7,12 +7,14 @@ from typing import Any
 class APIResponse:
     def __init__(self, response: requests.Response) -> None:
         self._response = response
+        # This is pulled now from the property via self._response.
         data_format = self.content_type
         try:
             if data_format == "json":
                 self.api_data: dict = response.json()
             else:
-                # response.content will contain XML from Alma.
+                # response.content probably will contain XML from Alma.
+                # This might also be empty (b''), legitimately.
                 self.api_data = {"content": response.content}
         except requests.exceptions.JSONDecodeError:
             # Some responses return nothing, which can't be decoded...
