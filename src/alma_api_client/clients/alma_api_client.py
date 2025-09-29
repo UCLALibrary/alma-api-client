@@ -95,28 +95,40 @@ class AlmaAPIClient:
         api_response = self._call_api(
             method="post", api=api, data=data, parameters=parameters
         )
-        return APIResponse(api_response)
+        if api_response.ok:
+            return APIResponse(api_response)
+        else:
+            raise APIError(api_response, "Error creating item.")
 
     def get_items(
         self, bib_id: str, holding_id: str, parameters: dict | None = None
     ) -> APIResponse:
         api = f"/almaws/v1/bibs/{bib_id}/holdings/{holding_id}/items"
         api_response = self._call_api(method="get", api=api, parameters=parameters)
-        return APIResponse(api_response)
+        if api_response.ok:
+            return APIResponse(api_response)
+        else:
+            raise APIError(api_response, "Error retrieving item.")
 
     def get_integration_profiles(self, parameters: dict | None = None) -> APIResponse:
         # Caller can pass search parameters, but must deal with possible
         # multiple matches.
         api = "/almaws/v1/conf/integration-profiles"
         api_response = self._call_api(method="get", api=api, parameters=parameters)
-        return APIResponse(api_response)
+        if api_response.ok:
+            return APIResponse(api_response)
+        else:
+            raise APIError(api_response, "Error retrieving integration profiles.")
 
     def get_jobs(self, parameters: dict | None = None) -> APIResponse:
         # Caller normally will pass parameters, but they're not required.
         # Caller must deal with possible multiple matches.
         api = "/almaws/v1/conf/jobs"
         api_response = self._call_api(method="get", api=api, parameters=parameters)
-        return APIResponse(api_response)
+        if api_response.ok:
+            return APIResponse(api_response)
+        else:
+            raise APIError(api_response, "Error retrieving jobs.")
 
     def run_job(
         self, job_id, data: dict | None = None, parameters: dict | None = None
@@ -130,7 +142,10 @@ class AlmaAPIClient:
         api_response = self._call_api(
             method="post", api=api, data=data, parameters=parameters
         )
-        return APIResponse(api_response)
+        if api_response.ok:
+            return APIResponse(api_response)
+        else:
+            raise APIError(api_response, "Error running job.")
 
     def wait_for_completion(
         self, job_id: str, instance_id: str, seconds_to_poll: int = 15
@@ -143,6 +158,7 @@ class AlmaAPIClient:
         # progress value (0-100) can't be used as it remains 0 if FAILED.
         # Use status instead; values from
         # https://developers.exlibrisgroup.com/alma/apis/docs/xsd/rest_job_instance.xsd/
+        # TODO: Improve this, with error handling.
         response_obj = APIResponse(api_response)
         status = response_obj.api_data.get("status", {}).get("value", "")
 
@@ -160,62 +176,92 @@ class AlmaAPIClient:
             print(status)
             sleep(seconds_to_poll)
         # Return the whole final response, for the caller to use as desired.
-        return APIResponse(api_response)
+        if api_response.ok:
+            return APIResponse(api_response)
+        else:
+            raise APIError(api_response, "Error completing job.")
 
     def get_fees(self, user_id: str, parameters: dict | None = None) -> APIResponse:
         api = f"/almaws/v1/users/{user_id}/fees"
         api_response = self._call_api(method="get", api=api, parameters=parameters)
-        return APIResponse(api_response)
+        if api_response.ok:
+            return APIResponse(api_response)
+        else:
+            raise APIError(api_response, "Error retrieving fees.")
 
     def get_analytics_report(self, parameters: dict | None = None) -> APIResponse:
         # Docs say to URL-encode report name (path);
         # request lib is doing it automatically.
         api = "/almaws/v1/analytics/reports"
         api_response = self._call_api(method="get", api=api, parameters=parameters)
-        return APIResponse(api_response)
+        if api_response.ok:
+            return APIResponse(api_response)
+        else:
+            raise APIError(api_response, "Error retrieving analytics report.")
 
     def get_analytics_path(
         self, path: str, parameters: dict | None = None
     ) -> APIResponse:
         api = f"/almaws/v1/analytics/paths/{path}"
         api_response = self._call_api(method="get", api=api, parameters=parameters)
-        return APIResponse(api_response)
+        if api_response.ok:
+            return APIResponse(api_response)
+        else:
+            raise APIError(api_response, "Error retrieving analytics path.")
 
     def get_vendors(self, parameters: dict | None = None) -> APIResponse:
         api = "/almaws/v1/acq/vendors"
         api_response = self._call_api(method="get", api=api, parameters=parameters)
-        return APIResponse(api_response)
+        if api_response.ok:
+            return APIResponse(api_response)
+        else:
+            raise APIError(api_response, "Error retrieving vendors.")
 
     def get_vendor(
         self, vendor_code: str, parameters: dict | None = None
     ) -> APIResponse:
         api = f"/almaws/v1/acq/vendors/{vendor_code}"
         api_response = self._call_api(method="get", api=api, parameters=parameters)
-        return APIResponse(api_response)
+        if api_response.ok:
+            return APIResponse(api_response)
+        else:
+            raise APIError(api_response, "Error retrieving vendor.")
 
     def get_set_members(
         self, set_id: str, parameters: dict | None = None
     ) -> APIResponse:
         api = f"/almaws/v1/conf/sets/{set_id}/members"
         api_response = self._call_api(method="get", api=api, parameters=parameters)
-        return APIResponse(api_response)
+        if api_response.ok:
+            return APIResponse(api_response)
+        else:
+            raise APIError(api_response, "Error retrieving set members.")
 
     def create_user(self, data: dict, parameters: dict | None = None) -> APIResponse:
         api = "/almaws/v1/users"
         api_response = self._call_api(
             method="post", api=api, data=data, parameters=parameters
         )
-        return APIResponse(api_response)
+        if api_response.ok:
+            return APIResponse(api_response)
+        else:
+            raise APIError(api_response, "Error creating user.")
 
     def delete_user(self, user_id: str, parameters: dict | None = None) -> APIResponse:
         api = f"/almaws/v1/users/{user_id}"
         api_response = self._call_api(method="delete", api=api, parameters=parameters)
-        return APIResponse(api_response)
+        if api_response.ok:
+            return APIResponse(api_response)
+        else:
+            raise APIError(api_response, "Error deleting user.")
 
     def get_user(self, user_id: str, parameters: dict | None = None) -> APIResponse:
         api = f"/almaws/v1/users/{user_id}"
         api_response = self._call_api(method="get", api=api, parameters=parameters)
-        return APIResponse(api_response)
+        if api_response.ok:
+            return APIResponse(api_response)
+        else:
+            raise APIError(api_response, "Error retrieving user.")
 
     def update_user(
         self, user_id: str, data: dict, parameters: dict | None = None
@@ -224,7 +270,10 @@ class AlmaAPIClient:
         api_response = self._call_api(
             method="put", api=api, data=data, parameters=parameters
         )
-        return APIResponse(api_response)
+        if api_response.ok:
+            return APIResponse(api_response)
+        else:
+            raise APIError(api_response, "Error updating user.")
 
     def get_general_configuration(self) -> APIResponse:
         """Return general configuration info.
@@ -232,13 +281,19 @@ class AlmaAPIClient:
         """
         api = "/almaws/v1/conf/general"
         api_response = self._call_api(method="get", api=api)
-        return APIResponse(api_response)
+        if api_response.ok:
+            return APIResponse(api_response)
+        else:
+            raise APIError(api_response, "Error retrieving general configuration.")
 
     def get_code_tables(self) -> APIResponse:
         """Return list of code tables.  This specific API is undocumented."""
         api = "/almaws/v1/conf/code-tables"
         api_response = self._call_api(method="get", api=api)
-        return APIResponse(api_response)
+        if api_response.ok:
+            return APIResponse(api_response)
+        else:
+            raise APIError(api_response, "Error retrieving code tables.")
 
     def get_code_table(
         self, code_table: str, parameters: dict | None = None
@@ -246,13 +301,19 @@ class AlmaAPIClient:
         """Return specific code table, via name from get_code_tables()."""
         api = f"/almaws/v1/conf/code-tables/{code_table}"
         api_response = self._call_api(method="get", api=api, parameters=parameters)
-        return APIResponse(api_response)
+        if api_response.ok:
+            return APIResponse(api_response)
+        else:
+            raise APIError(api_response, "Error retrieving code table.")
 
     def get_mapping_tables(self) -> APIResponse:
         """Return list of mapping tables.  This specific API is undocumented."""
         api = "/almaws/v1/conf/mapping-tables"
         api_response = self._call_api(method="get", api=api)
-        return APIResponse(api_response)
+        if api_response.ok:
+            return APIResponse(api_response)
+        else:
+            raise APIError(api_response, "Error retrieving mapping tables.")
 
     def get_mapping_table(
         self, mapping_table: str, parameters: dict | None = None
@@ -260,13 +321,19 @@ class AlmaAPIClient:
         """Return specific mapping table, via name from get_mapping_tables()."""
         api = f"/almaws/v1/conf/code-tables/{mapping_table}"
         api_response = self._call_api(method="get", api=api, parameters=parameters)
-        return APIResponse(api_response)
+        if api_response.ok:
+            return APIResponse(api_response)
+        else:
+            raise APIError(api_response, "Error retrieving mapping table.")
 
     def get_libraries(self) -> APIResponse:
         """Return all libraries."""
         api = "/almaws/v1/conf/libraries"
         api_response = self._call_api(method="get", api=api)
-        return APIResponse(api_response)
+        if api_response.ok:
+            return APIResponse(api_response)
+        else:
+            raise APIError(api_response, "Error retrieving libraries.")
 
     def get_library(self, library_code: str) -> APIResponse:
         """Return data for a single library, via code.
@@ -274,7 +341,10 @@ class AlmaAPIClient:
         """
         api = f"/almaws/v1/conf/libraries/{library_code}"
         api_response = self._call_api(method="get", api=api)
-        return APIResponse(api_response)
+        if api_response.ok:
+            return APIResponse(api_response)
+        else:
+            raise APIError(api_response, "Error retrieving library.")
 
     def get_circulation_desks(
         self, library_code: str, parameters: dict | None = None
@@ -282,19 +352,28 @@ class AlmaAPIClient:
         """Return data about circ desks in a single library, via code."""
         api = f"/almaws/v1/conf/libraries/{library_code}/circ-desks/"
         api_response = self._call_api(method="get", api=api, parameters=parameters)
-        return APIResponse(api_response)
+        if api_response.ok:
+            return APIResponse(api_response)
+        else:
+            raise APIError(api_response, "Error retrieving circulation desks.")
 
     def get_funds(self, parameters: dict | None = None) -> APIResponse:
         """Return data about all funds matching search in parameters."""
         api = "/almaws/v1/acq/funds"
         api_response = self._call_api(method="get", api=api, parameters=parameters)
-        return APIResponse(api_response)
+        if api_response.ok:
+            return APIResponse(api_response)
+        else:
+            raise APIError(api_response, "Error retrieving funds.")
 
     def get_fund(self, fund_id: str, parameters: dict | None = None) -> APIResponse:
         """Return data about a specific fund."""
         api = f"/almaws/v1/acq/funds/{fund_id}"
         api_response = self._call_api(method="get", api=api, parameters=parameters)
-        return APIResponse(api_response)
+        if api_response.ok:
+            return APIResponse(api_response)
+        else:
+            raise APIError(api_response, "Error retrieving fund.")
 
     def update_fund(
         self, fund_id: str, data: dict, parameters: dict | None = None
@@ -304,7 +383,10 @@ class AlmaAPIClient:
         api_response = self._call_api(
             method="put", api=api, data=data, parameters=parameters
         )
-        return APIResponse(api_response)
+        if api_response.ok:
+            return APIResponse(api_response)
+        else:
+            raise APIError(api_response, "Error updating fund.")
 
     def get_set(self, set_id: str, get_all_members: bool = True) -> Set:
         """Retrieve data for a specific set.
@@ -329,6 +411,7 @@ class AlmaAPIClient:
                         api=alma_set.members_api,
                         parameters={"offset": offset, "limit": limit},
                     )
+                    # TODO: Handle errors if this fails.
                     response_obj = APIResponse(api_response)
                     new_members = response_obj.api_data.get("member", [])
                     offset += len(new_members)
@@ -366,7 +449,10 @@ class AlmaAPIClient:
         """
         api = f"/almaws/v1/bibs/authorities/{authority_id}"
         api_response = self._get_marc_record(api, parameters)
-        return AuthorityRecord(api_response)
+        if api_response.ok:
+            return AuthorityRecord(api_response)
+        else:
+            raise APIError(api_response, "Error retrieving authority record.")
 
     def get_bib_record(self, bib_id: str, parameters: dict | None = None) -> BibRecord:
         """Retrieve bibliographic record from Alma, as a `BibRecord`.
@@ -398,7 +484,10 @@ class AlmaAPIClient:
         api_response = self._get_marc_record(api, parameters)
         # TODO: Consider adding bib_id to holding record, which does not get it
         # from API response.
-        return HoldingRecord(api_response)
+        if api_response.ok:
+            return HoldingRecord(api_response)
+        else:
+            raise APIError(api_response, "Error retrieving holding record.")
 
     def create_bib_record(
         self, bib_record: BibRecord, parameters: dict | None = None
@@ -408,7 +497,10 @@ class AlmaAPIClient:
         api_response = self._call_api(
             method="post", api=api, data=data, parameters=parameters, data_format="xml"
         )
-        return BibRecord(api_response)
+        if api_response.ok:
+            return BibRecord(api_response)
+        else:
+            raise APIError(api_response, "Error creating bib record.")
 
     def update_bib_record(
         self, bib_id: str, bib_record: BibRecord, parameters: dict | None = None
@@ -418,14 +510,20 @@ class AlmaAPIClient:
         api_response = self._call_api(
             method="put", api=api, data=data, parameters=parameters, data_format="xml"
         )
-        return BibRecord(api_response)
+        if api_response.ok:
+            return BibRecord(api_response)
+        else:
+            raise APIError(api_response, "Error updating bib record.")
 
     def delete_bib_record(
         self, bib_id: str, parameters: dict | None = None
     ) -> APIResponse:
         api = f"/almaws/v1/bibs/{bib_id}"
         api_response = self._call_api(method="delete", api=api, parameters=parameters)
-        return APIResponse(api_response)
+        if api_response.ok:
+            return APIResponse(api_response)
+        else:
+            raise APIError(api_response, "Error deleting bib record.")
 
     def create_holding_record(
         self, bib_id: str, holding_record: HoldingRecord, parameters: dict | None = None
@@ -435,7 +533,10 @@ class AlmaAPIClient:
         api_response = self._call_api(
             method="post", api=api, data=data, parameters=parameters, data_format="xml"
         )
-        return HoldingRecord(api_response)
+        if api_response.ok:
+            return HoldingRecord(api_response)
+        else:
+            raise APIError(api_response, "Error creating holding record.")
 
     def update_holding_record(
         self,
@@ -449,11 +550,17 @@ class AlmaAPIClient:
         api_response = self._call_api(
             method="put", api=api, data=data, parameters=parameters, data_format="xml"
         )
-        return HoldingRecord(api_response)
+        if api_response.ok:
+            return HoldingRecord(api_response)
+        else:
+            raise APIError(api_response, "Error updating holding record.")
 
     def delete_holding_record(
         self, bib_id: str, holding_id: str, parameters: dict | None = None
     ) -> APIResponse:
         api = f"/almaws/v1/bibs/{bib_id}/holdings/{holding_id}"
         api_response = self._call_api(method="delete", api=api, parameters=parameters)
-        return APIResponse(api_response)
+        if api_response.ok:
+            return APIResponse(api_response)
+        else:
+            raise APIError(api_response, "Error deleting holding record.")
