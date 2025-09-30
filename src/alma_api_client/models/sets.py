@@ -1,4 +1,6 @@
 from enum import Enum
+from requests import Response
+from alma_api_client.models.api import APIResponse
 
 
 # Derived from /almaws/v1/conf/code-tables/SetContentType
@@ -26,56 +28,60 @@ class SetContentType(Enum):
     RESEARCHERS = "Researchers"
     USER = "User"
     VENDOR = "Vendor"
+    NONE = ""
 
 
 class SetMember:
-    def __init__(self, api_response: dict) -> None:
-        if api_response:
-            self._create_from_api_response(api_response)
+    def __init__(self, member_data: dict) -> None:
+        if member_data:
+            self._create_from_member_data(member_data)
 
     def __str__(self) -> str:
         return f"{self.description} : {self.link}"
 
-    def _create_from_api_response(self, api_response: dict):
+    def _create_from_member_data(self, member_data: dict):
         """Add attributes to this `SetMember` object based on data from the API response.
 
-        :param api_response: A dict of data provided by the Alma API.
+        :param member_data: A `dict` extracted from Alma API data.
         :return: None
         """
-        self.id = api_response.get("id", "")
-        self.description = api_response.get("description", "")
-        self.link = api_response.get("link", "")
+        self.id = member_data.get("id", "")
+        self.description = member_data.get("description", "")
+        self.link = member_data.get("link", "")
 
 
-class Set:
-    def __init__(self, name: str = "", api_response: dict | None = None) -> None:
+class Set(APIResponse):
+    def __init__(self, name: str = "", api_response: Response | None = None) -> None:
         # Other fields could be added here, but unless we're creating sets from
         # scratch via API, I don't see a need.
         self.name = name
-        if api_response:
-            self._create_from_api_response(api_response)
+        if api_response is not None:
+            super().__init__(api_response)
+            # Everything needed is in the api_response, available via base class.
+            self._create_from_api_response()
 
-    def _create_from_api_response(self, api_response: dict) -> None:
+    def _create_from_api_response(self) -> None:
         """Add attributes to this `Set` object based on data from the API response.
 
-        :param api_response: A dict of data provided by the Alma API.
         :return: None
         """
-        self.name = api_response.get("name", "")
-        self.content_type = self._get_content_type_from_api_response(api_response)
+        self.name = self.api_data.get("name", "")
+        self.set_type = self._get_set_content_type()
 
-        member_info = api_response.get("number_of_members", {})
+        member_info = self.api_data.get("number_of_members", {})
         self.number_of_members = member_info.get("value", 0)
         self.members_api = member_info.get("link", "")
+        self.members = []
 
-    def _get_content_type_from_api_response(self, api_response: dict) -> SetContentType:
+    def _get_set_content_type(self) -> SetContentType:
         """Convert the set content type to an enum.
 
-        :param api_response: A dict of data provided by the Alma API.
         :return: A `SetContentType` enum.
         """
-        content = api_response.get("content", {})
-        return SetContentType(content.get("desc"))
+        content_info = self.api_data.get("content", {})
+        # content_info looks like this (values will vary based on type):
+        # {'content': {'desc': 'Physical items', 'value': 'ITEM'}
+        return SetContentType(content_info.get("desc", ""))
 
     def add_members(self, members: list[SetMember]) -> None:
         """Add a reference to the members of this Set.
