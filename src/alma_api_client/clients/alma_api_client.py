@@ -212,23 +212,24 @@ class AlmaAPIClient:
         :return: An `APIResponse` object with all relevant data.
         """
         api = f"/almaws/v1/conf/jobs/{job_id}/instances/{instance_id}"
-        api_response = self._call_api(method="get", api=api)
+        api_response = requests.Response()  # initialization to keep type-checker happy.
+
         # progress value (0-100) can't be used as it remains 0 if FAILED.
         # Use status instead; values from:
         # https://developers.exlibrisgroup.com/alma/apis/docs/xsd/rest_job_instance.xsd/
-        # TODO: Improve this, with error handling.
-        response_obj = APIResponse(api_response)
-        status = response_obj.api_data.get("status", {}).get("value", "")
+        status = "NONE"  # Fake value until API is called.
 
         # There are other values, but these indicate the job is still running (or at least,
         # not yet done).
         while status in [
+            "NONE",  # fake value to ensure this loop is entered at least once.
             "QUEUED",
             "PENDING",
             "INITIALIZING",
             "RUNNING",
             "FINALIZING",
         ]:
+            api_response = self._call_api(method="get", api=api)
             response_obj = APIResponse(api_response)
             status = response_obj.api_data.get("status", {}).get("value", "")
             print(status)
