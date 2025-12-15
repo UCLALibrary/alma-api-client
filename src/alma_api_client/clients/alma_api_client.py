@@ -78,15 +78,21 @@ class AlmaAPIClient:
         if parameters is None:
             parameters = {}
 
-        # pylance does not like **data_params, since requests.request()
-        # does not take **kwargs.
-        response = requests.request(
-            method=method,
-            url=api_url,
-            headers=headers,
-            params=parameters,
-            **data_params,  # type: ignore
-        )
+        try:
+            # pylance does not like **data_params, since requests.request()
+            # does not take **kwargs.
+            response = requests.request(
+                method=method,
+                url=api_url,
+                headers=headers,
+                params=parameters,
+                **data_params,  # type: ignore
+            )
+        except requests.exceptions.SSLError as e:
+            raise APIError(
+                response=requests.Response(),
+                message=f"SSL Error calling Alma API at {api_url}: {e}",
+            ) from e
 
         return response
 
