@@ -813,7 +813,7 @@ class AlmaAPIClient:
         """Retrieve an Alma electronic service.
 
         :param collection_id: The Alma id of the collection to retrieve.
-        :param collection_id: The Alma id of the service to retrieve.
+        :param service_id: The Alma id of the service to retrieve.
         :param parameters: Any optional parameters; see Alma documentation for details.
         :raises: `APIError`, if an Alma API error occurs.
         :return: An `APIResponse` object with all relevant data.
