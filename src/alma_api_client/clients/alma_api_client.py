@@ -789,3 +789,38 @@ class AlmaAPIClient:
             return APIResponse(api_response)
         else:
             raise APIError(api_response, "Error deleting holding record.")
+
+    def get_electronic_collection(
+        self, collection_id: str, parameters: dict | None = None
+    ) -> APIResponse:
+        """Retrieve an Alma electronic collection.
+
+        :param collection_id: The Alma id of the collection to retrieve.
+        :param parameters: Any optional parameters; see Alma documentation for details.
+        :raises: `APIError`, if an Alma API error occurs.
+        :return: An `APIResponse` object with all relevant data.
+        """
+        api = f"/almaws/v1/electronic/e-collections/{collection_id}"
+        api_response = self._call_api(method="get", api=api, parameters=parameters)
+        if api_response.ok:
+            return APIResponse(api_response)
+        else:
+            raise APIError(api_response, "Error retrieving collection.")
+
+    def get_electronic_service(
+        self, collection_id: str, service_id: str, parameters: dict | None = None
+    ) -> APIResponse:
+        """Retrieve an Alma electronic service.
+
+        :param collection_id: The Alma id of the collection to retrieve.
+        :param collection_id: The Alma id of the service to retrieve.
+        :param parameters: Any optional parameters; see Alma documentation for details.
+        :raises: `APIError`, if an Alma API error occurs.
+        :return: An `APIResponse` object with all relevant data.
+        """
+        api = f"/almaws/v1/electronic/e-collections/{collection_id}/e-services/{service_id}"
+        api_response = self._call_api(method="get", api=api, parameters=parameters)
+        if api_response.ok:
+            return APIResponse(api_response)
+        else:
+            raise APIError(api_response, "Error retrieving service.")
