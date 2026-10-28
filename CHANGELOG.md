@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.3 - 2026-10-28
+
+### Changed
+
+- Added endpoints to retrieve Alma electronic collection and service data.
+
 ## 0.2.2 - 2025-12-15
 
 ### Fixed
